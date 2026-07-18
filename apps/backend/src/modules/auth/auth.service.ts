@@ -16,7 +16,7 @@ export class AuthService {
       include: { role: true },
     });
 
-    if (!user || user.passwordHash) {
+    if (!user || !user.passwordHash) {
       throw new UnauthorizedException('Invalid credentials');
     }
 

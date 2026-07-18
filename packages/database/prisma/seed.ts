@@ -1,4 +1,5 @@
 import { PermissionAction, PrismaClient } from "@prisma/client";
+import * as bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
@@ -51,7 +52,32 @@ async function main() {
       });
     }
   }
-  console.log("Seed completed ✅");
+
+  const superAdminRole = await prisma.role.findFirst({
+    where: { name: "Super Admin" },
+  });
+
+  // Pehla Super Admin USER create karo
+  const passwordHash = await bcrypt.hash("Admin@123", 10); // temporary password
+
+  await prisma.user.upsert({
+    where: {
+      tenantId_email: { tenantId: tenant.id, email: "admin@colorjet.com" },
+    },
+    update: { passwordHash }, // ← ab update bhi hoga
+    create: {
+      tenantId: tenant.id,
+      roleId: superAdminRole.id,
+      fullName: "Super Admin",
+      email: "admin@colorjet.com",
+      passwordHash,
+      isSuperAdmin: true,
+    },
+  });
+
+  console.log(
+    "Seed completed ✅ — Super Admin: admin@colorjet.com / Admin@123",
+  );
 }
 
 main()
