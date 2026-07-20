@@ -68,6 +68,8 @@ model Tenant {
 
   users         User[]
   roles         Role[]
+  workflowRules     WorkflowRule[]
+  workflowInstances WorkflowInstance[]
 
   @@map("tenants")
 }
@@ -97,6 +99,8 @@ model User {
   tenant        Tenant     @relation(fields: [tenantId], references: [id])
   role          Role       @relation(fields: [roleId], references: [id])
   refreshTokens RefreshToken[]
+  initiatedWorkflows  WorkflowInstance[]
+  approvalActions     ApprovalAction[]
 
   @@unique([tenantId, email])
   @@index([tenantId, status])
@@ -127,6 +131,8 @@ model Role {
   childRoles        Role[]           @relation("RoleHierarchy")
   users             User[]
   rolePermissions   RolePermission[]
+  approverSteps     WorkflowStep[] @relation("StepApproverRole")
+  escalationSteps   WorkflowStep[] @relation("StepEscalationRole")
 
   @@unique([tenantId, name])
   @@index([tenantId, status])
@@ -185,4 +191,127 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+// ============================
+// WORKFLOW ENGINE — ENUMS
+// ============================
+
+enum WorkflowInstanceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+  ESCALATED
+  RESUBMITTED
+}
+
+// ============================
+// WORKFLOW RULE (Admin-configured)
+// ============================
+
+model WorkflowRule {
+  id                String    @id @default(uuid())
+  tenantId          String    @map("tenant_id")
+
+  name              String
+  module            String
+  description       String?
+
+  isActive          Boolean   @default(true) @map("is_active")
+  autoApprove       Boolean   @default(false) @map("auto_approve")
+  escalationHours   Int?      @map("escalation_hours")
+
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+
+  tenant            Tenant             @relation(fields: [tenantId], references: [id])
+  steps             WorkflowStep[]
+  instances         WorkflowInstance[]
+
+  @@unique([tenantId, module])
+  @@map("workflow_rules")
+}
+
+// ============================
+// WORKFLOW STEP
+// ============================
+
+model WorkflowStep {
+  id                 String   @id @default(uuid())
+  workflowRuleId     String   @map("workflow_rule_id")
+
+  stepOrder          Int      @map("step_order")
+  approverRoleId     String   @map("approver_role_id")
+  escalationRoleId   String?  @map("escalation_role_id")
+  isOptional         Boolean  @default(false) @map("is_optional")
+
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  workflowRule       WorkflowRule @relation(fields: [workflowRuleId], references: [id], onDelete: Cascade)
+  approverRole       Role         @relation("StepApproverRole", fields: [approverRoleId], references: [id])
+  escalationRole     Role?        @relation("StepEscalationRole", fields: [escalationRoleId], references: [id])
+  actions            ApprovalAction[]
+
+  @@unique([workflowRuleId, stepOrder])
+  @@map("workflow_steps")
+}
+
+// ============================
+// WORKFLOW INSTANCE
+// ============================
+
+model WorkflowInstance {
+  id                String                  @id @default(uuid())
+  tenantId          String                  @map("tenant_id")
+  workflowRuleId    String                  @map("workflow_rule_id")
+
+  entityType        String                  @map("entity_type")
+  entityId          String                  @map("entity_id")
+
+  status            WorkflowInstanceStatus  @default(PENDING)
+  currentStepOrder  Int                     @default(1) @map("current_step_order")
+
+  initiatedById     String                  @map("initiated_by_id")
+
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+
+  tenant            Tenant       @relation(fields: [tenantId], references: [id])
+  workflowRule      WorkflowRule @relation(fields: [workflowRuleId], references: [id])
+  initiatedBy       User         @relation(fields: [initiatedById], references: [id])
+  actions           ApprovalAction[]
+
+  @@index([tenantId, status])
+  @@index([entityType, entityId])
+  @@map("workflow_instances")
+}
+
+// ============================
+// APPROVAL ACTION (history)
+// ============================
+
+model ApprovalAction {
+  id                  String            @id @default(uuid())
+  workflowInstanceId  String            @map("workflow_instance_id")
+  workflowStepId      String            @map("workflow_step_id")
+
+  actionByUserId      String?           @map("action_by_user_id")
+  decision            ApprovalDecision
+  remarks             String?
+
+  createdAt           DateTime          @default(now()) @map("created_at")
+
+  workflowInstance    WorkflowInstance  @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+  workflowStep        WorkflowStep      @relation(fields: [workflowStepId], references: [id])
+  actionByUser        User?             @relation(fields: [actionByUserId], references: [id])
+
+  @@index([workflowInstanceId])
+  @@map("approval_actions")
 }
