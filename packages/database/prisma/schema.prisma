@@ -71,6 +71,9 @@ model Tenant {
   workflowRules     WorkflowRule[]
   workflowInstances WorkflowInstance[]
   brand             Brand[]
+  productCategories   ProductCategory[]
+  products            Product[]
+  brandProductRates   BrandProductRate[]
 
   @@map("tenants")
 }
@@ -102,6 +105,7 @@ model User {
   refreshTokens RefreshToken[]
   initiatedWorkflows  WorkflowInstance[]
   approvalActions     ApprovalAction[]
+  assignedRates       BrandProductRate[]
 
   @@unique([tenantId, email])
   @@index([tenantId, status])
@@ -401,8 +405,100 @@ model Brand {
 
   tenant              Tenant               @relation(fields: [tenantId], references: [id])
   businessProfile     BusinessProfile      @relation(fields: [businessProfileId], references: [id])
+  productRates        BrandProductRate[]
 
   @@unique([tenantId, email])
   @@index([tenantId, approvalStatus])
   @@map("brands")
+}
+
+// ============================
+// PRODUCT — ENUMS
+// ============================
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DRAFT
+}
+
+// ============================
+// PRODUCT CATEGORY (Admin-defined, shared across all Brands)
+// ============================
+
+model ProductCategory {
+  id            String    @id @default(uuid())
+  tenantId      String    @map("tenant_id")
+
+  name          String
+  description   String?
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  products      Product[]
+
+  @@unique([tenantId, name])
+  @@map("product_categories")
+}
+
+// ============================
+// PRODUCT (Master Catalog — ColorJet-owned)
+// ============================
+
+model Product {
+  id              String         @id @default(uuid())
+  tenantId        String         @map("tenant_id")
+  categoryId      String?        @map("category_id")
+
+  name            String
+  sku             String?
+  description     String?
+  unit            String         @default("sq.ft")
+
+  imageUrls       String[]       @map("image_urls")
+
+  status          ProductStatus  @default(ACTIVE)
+
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  deletedAt       DateTime?      @map("deleted_at")
+
+  tenant          Tenant             @relation(fields: [tenantId], references: [id])
+  category        ProductCategory?   @relation(fields: [categoryId], references: [id])
+  brandRates      BrandProductRate[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId, status])
+  @@map("products")
+}
+
+// ============================
+// BRAND PRODUCT RATE
+// ============================
+
+model BrandProductRate {
+  id            String    @id @default(uuid())
+  tenantId      String    @map("tenant_id")
+  brandId       String    @map("brand_id")
+  productId     String    @map("product_id")
+
+  rate          Decimal   @db.Decimal(10, 2)
+  isActive      Boolean   @default(true) @map("is_active")
+
+  assignedById  String    @map("assigned_by_id")
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  brand         Brand    @relation(fields: [brandId], references: [id])
+  product       Product  @relation(fields: [productId], references: [id])
+  assignedBy    User     @relation(fields: [assignedById], references: [id])
+
+  @@unique([brandId, productId])
+  @@index([tenantId, brandId])
+  @@map("brand_product_rates")
 }
