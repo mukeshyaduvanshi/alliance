@@ -36,7 +36,7 @@ async function main() {
     });
   }
   // Step C: Create base permissions (module-wise, expand lated per modules)
-  const modules = ["tenant", "user", "role", "permission", "workflow"];
+  const modules = ["tenant", "user", "role", "permission", "workflow", "brand"];
   const actions = Object.values(PermissionAction);
 
   for (const module of modules) {

@@ -11,7 +11,7 @@ import { StartWorkflowDto } from './dto/start-workflow.dto';
 export class WorkflowInstanceService {
   constructor(private prisma: PrismaService) {}
 
-  async start(tenantId: string, dto: StartWorkflowDto, initiatedById: string) {
+  async start(tenantId: string, dto: StartWorkflowDto, initiatedById?: string) {
     const rule = await this.prisma.workflowRule.findFirst({
       where: { tenantId, module: dto.module, isActive: true, deletedAt: null },
       include: { steps: { orderBy: { stepOrder: 'asc' } } },
@@ -30,7 +30,7 @@ export class WorkflowInstanceService {
           workflowRuleId: rule.id,
           entityType: dto.entityType,
           entityId: dto.entityId,
-          initiatedById,
+          initiatedById: initiatedById ?? null,
           status: 'APPROVED',
           currentStepOrder: 0,
         },
@@ -43,7 +43,7 @@ export class WorkflowInstanceService {
         workflowRuleId: rule.id,
         entityType: dto.entityType,
         entityId: dto.entityId,
-        initiatedById,
+        initiatedById: initiatedById ?? null,
         status: 'PENDING',
         currentStepOrder: 1,
       },

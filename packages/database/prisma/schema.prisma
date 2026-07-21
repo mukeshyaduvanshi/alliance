@@ -70,6 +70,7 @@ model Tenant {
   roles         Role[]
   workflowRules     WorkflowRule[]
   workflowInstances WorkflowInstance[]
+  brand             Brand[]
 
   @@map("tenants")
 }
@@ -278,14 +279,14 @@ model WorkflowInstance {
   status            WorkflowInstanceStatus  @default(PENDING)
   currentStepOrder  Int                     @default(1) @map("current_step_order")
 
-  initiatedById     String                  @map("initiated_by_id")
+  initiatedById     String?                  @map("initiated_by_id")
 
   createdAt         DateTime                @default(now()) @map("created_at")
   updatedAt         DateTime                @updatedAt @map("updated_at")
 
   tenant            Tenant       @relation(fields: [tenantId], references: [id])
   workflowRule      WorkflowRule @relation(fields: [workflowRuleId], references: [id])
-  initiatedBy       User         @relation(fields: [initiatedById], references: [id])
+  initiatedBy       User?         @relation(fields: [initiatedById], references: [id])
   actions           ApprovalAction[]
 
   @@index([tenantId, status])
@@ -314,4 +315,94 @@ model ApprovalAction {
 
   @@index([workflowInstanceId])
   @@map("approval_actions")
+}
+// ============================
+// BUSINESS PROFILE — ENUMS
+// ============================
+
+enum BusinessType {
+  PROPRIETORSHIP
+  PARTNERSHIP
+  PRIVATE_LIMITED
+  LLP
+  PUBLIC_LIMITED
+  OTHER
+}
+
+enum BrandApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ============================
+// BUSINESS PROFILE (shared: Brand & Vendor)
+// ============================
+
+model BusinessProfile {
+  id              String        @id @default(uuid())
+
+  legalName       String        @map("legal_name")
+  businessType    BusinessType  @map("business_type")
+
+  panNumber       String?        @map("pan_number")
+  gstNumber       String?       @map("gst_number")
+  msmeNumber      String?       @map("msme_number")
+  cinNumber       String?        @map("cin_number")
+
+  panDocUrl       String?       @map("pan_doc_url")
+  gstDocUrl       String?       @map("gst_doc_url")
+  msmeDocUrl      String?       @map("msme_doc_url")
+  cinDocUrl       String?        @map("cin_doc_Url")
+
+  addressLine1    String        @map("address_line1")
+  addressLine2    String?       @map("address_line2")
+  city            String
+  state           String
+  pincode         String
+  country         String        @default("India")
+
+  isVerified      Boolean       @default(false) @map("is_verified")
+  verifiedAt      DateTime?     @map("verified_at")
+
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  brand           Brand?
+
+  @@unique([panNumber])
+  @@map("business_profiles")
+}
+
+// ============================
+// BRAND
+// ============================
+
+model Brand {
+  id                  String               @id @default(uuid())
+  tenantId            String               @map("tenant_id")
+  businessProfileId   String               @unique @map("business_profile_id")
+
+  brandName           String               @map("brand_name")
+  contactPersonName   String               @map("contact_person_name")
+  email               String
+  phone               String
+  passwordHash        String?              @map("password_hash")
+
+  logoUrl             String?              @map("logo_url")
+  approvalStatus       BrandApprovalStatus @default(PENDING) @map("approval_status")
+  workflowInstanceId   String?             @map("workflow_instance_id")
+
+  isActive            Boolean              @default(true) @map("is_active")
+
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  deletedAt            DateTime?           @map("deleted_at")
+
+  tenant              Tenant               @relation(fields: [tenantId], references: [id])
+  businessProfile     BusinessProfile      @relation(fields: [businessProfileId], references: [id])
+
+  @@unique([tenantId, email])
+  @@index([tenantId, approvalStatus])
+  @@map("brands")
 }

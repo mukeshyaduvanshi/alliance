@@ -9,6 +9,7 @@ import { RoleModule } from './modules/role/role.module';
 import { PermissionModule } from './modules/permission/permission.module';
 import { WorkflowRuleModule } from './modules/workflow-rule/workflow-rule.module';
 import { WorkflowInstanceModule } from './modules/workflow-instance/workflow-instance.module';
+import { BrandModule } from './modules/brand/brand.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { WorkflowInstanceModule } from './modules/workflow-instance/workflow-ins
     PermissionModule,
     WorkflowRuleModule,
     WorkflowInstanceModule,
+    BrandModule,
   ],
   controllers: [AppController],
   providers: [AppService],
