@@ -15,6 +15,7 @@ import { RequirePermission } from '../auth/decorators/require-permission.decorat
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { UpdateRegionRatesDto } from './dto/update-region-rates.dto';
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('products')
@@ -53,5 +54,33 @@ export class ProductController {
   @Delete(':id')
   remove(@Req() req: any, @Param('id') id: string) {
     return this.productService.remove(req.user.tenantId, id);
+  }
+
+  @RequirePermission('product', 'EDIT')
+  @Patch(':id/region-rates')
+  updateBrandRegionRates(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateRegionRatesDto,
+  ) {
+    return this.productService.updateBrandRegionRates(
+      req.user.tenantId,
+      id,
+      dto.regionRates,
+    );
+  }
+
+  @RequirePermission('product', 'EDIT')
+  @Patch(':id/vendor-region-rates')
+  updateVendorRegionRates(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateRegionRatesDto,
+  ) {
+    return this.productService.updateVendorRegionRates(
+      req.user.tenantId,
+      id,
+      dto.regionRates,
+    );
   }
 }

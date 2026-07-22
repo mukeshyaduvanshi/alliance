@@ -6,8 +6,6 @@ import { AssignRateDto } from './dto/assign-rate.dto';
 export class BrandRateService {
   constructor(private prisma: PrismaService) {}
 
-  // ===== Admin side =====
-
   async assignRate(
     tenantId: string,
     brandId: string,
@@ -16,23 +14,38 @@ export class BrandRateService {
   ) {
     return this.prisma.brandProductRate.upsert({
       where: { brandId_productId: { brandId, productId: dto.productId } },
-      update: { rate: dto.rate, isActive: true, assignedById },
+      update: {
+        region: dto.region,
+        isCustomRate: dto.isCustomRate ?? false,
+        customRate: dto.isCustomRate ? dto.customRate : null,
+        isActive: true,
+        assignedById,
+      },
       create: {
         tenantId,
         brandId,
         productId: dto.productId,
-        rate: dto.rate,
+        region: dto.region,
+        isCustomRate: dto.isCustomRate ?? false,
+        customRate: dto.isCustomRate ? dto.customRate : null,
         assignedById,
       },
     });
   }
 
   async listForBrandAdmin(tenantId: string, brandId: string) {
-    return this.prisma.brandProductRate.findMany({
+    const rates = await this.prisma.brandProductRate.findMany({
       where: { tenantId, brandId },
-      include: { product: { include: { category: true } } },
+      include: { product: { include: { category: true, regionRates: true } } },
       orderBy: { createdAt: 'desc' },
     });
+
+    return rates.map((r) => ({
+      ...r,
+      effectiveRate: r.isCustomRate
+        ? r.customRate
+        : r.product.regionRates.find((rr) => rr.region === r.region)?.rate,
+    }));
   }
 
   async removeRate(tenantId: string, brandId: string, productId: string) {
@@ -68,22 +81,40 @@ export class BrandRateService {
         isActive: true,
         product: { deletedAt: null, status: 'ACTIVE' },
       },
-      include: { product: { include: { category: true } } },
+      include: { product: { include: { category: true, regionRates: true } } },
     });
 
-    return rates.map((r) => ({
-      ...r.product,
-      rate: r.rate,
-    }));
+    return rates.map((r) => {
+      const effectiveRate = r.isCustomRate
+        ? r.customRate
+        : r.product.regionRates.find((rr) => rr.region === r.region)?.rate;
+
+      return {
+        ...r.product,
+        region: r.region,
+        isCustomRate: r.isCustomRate,
+        rate: effectiveRate,
+      };
+    });
   }
 
   async findOneForBrand(brandId: string, productId: string) {
     const rate = await this.prisma.brandProductRate.findFirst({
       where: { brandId, productId, isActive: true },
-      include: { product: { include: { category: true } } },
+      include: { product: { include: { category: true, regionRates: true } } },
     });
     if (!rate)
       throw new NotFoundException('Product not available for your account');
-    return { ...rate.product, rate: rate.rate };
+
+    const effectiveRate = rate.isCustomRate
+      ? rate.customRate
+      : rate.product.regionRates.find((rr) => rr.region === rate.region)?.rate;
+
+    return {
+      ...rate.product,
+      region: rate.region,
+      isCustomRate: rate.isCustomRate,
+      rate: effectiveRate,
+    };
   }
 }

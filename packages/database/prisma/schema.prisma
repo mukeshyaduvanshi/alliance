@@ -56,24 +56,24 @@ enum PermissionAction {
 // ============================
 
 model Tenant {
-  id            String   @id @default(uuid())
-  name          String
-  slug          String   @unique
-  subdomain     String   @unique
-  logoUrl       String?  @map("logo_url")
-  isActive      Boolean  @default(true) @map("is_active")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  deletedAt     DateTime? @map("deleted_at")
+  id        String    @id @default(uuid())
+  name      String
+  slug      String    @unique
+  subdomain String    @unique
+  logoUrl   String?   @map("logo_url")
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
-  users         User[]
-  roles         Role[]
+  users             User[]
+  roles             Role[]
   workflowRules     WorkflowRule[]
   workflowInstances WorkflowInstance[]
   brand             Brand[]
-  productCategories   ProductCategory[]
-  products            Product[]
-  brandProductRates   BrandProductRate[]
+  productCategories ProductCategory[]
+  products          Product[]
+  brandProductRates BrandProductRate[]
 
   @@map("tenants")
 }
@@ -83,29 +83,29 @@ model Tenant {
 // ============================
 
 model User {
-  id            String     @id @default(uuid())
-  tenantId      String     @map("tenant_id")
-  roleId        String     @map("role_id")
+  id       String @id @default(uuid())
+  tenantId String @map("tenant_id")
+  roleId   String @map("role_id")
 
-  fullName      String     @map("full_name")
-  email         String
-  phone         String?
-  passwordHash  String?    @map("password_hash")
+  fullName     String  @map("full_name")
+  email        String
+  phone        String?
+  passwordHash String? @map("password_hash")
 
-  status        UserStatus @default(ACTIVE)
-  isSuperAdmin  Boolean    @default(false) @map("is_super_admin")
+  status       UserStatus @default(ACTIVE)
+  isSuperAdmin Boolean    @default(false) @map("is_super_admin")
 
-  lastLoginAt   DateTime?  @map("last_login_at")
-  createdAt     DateTime   @default(now()) @map("created_at")
-  updatedAt     DateTime   @updatedAt @map("updated_at")
-  deletedAt     DateTime?  @map("deleted_at")
+  lastLoginAt DateTime? @map("last_login_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
-  tenant        Tenant     @relation(fields: [tenantId], references: [id])
-  role          Role       @relation(fields: [roleId], references: [id])
-  refreshTokens RefreshToken[]
-  initiatedWorkflows  WorkflowInstance[]
-  approvalActions     ApprovalAction[]
-  assignedRates       BrandProductRate[]
+  tenant             Tenant             @relation(fields: [tenantId], references: [id])
+  role               Role               @relation(fields: [roleId], references: [id])
+  refreshTokens      RefreshToken[]
+  initiatedWorkflows WorkflowInstance[]
+  approvalActions    ApprovalAction[]
+  assignedRates      BrandProductRate[]
 
   @@unique([tenantId, email])
   @@index([tenantId, status])
@@ -117,27 +117,27 @@ model User {
 // ============================
 
 model Role {
-  id            String      @id @default(uuid())
-  tenantId      String      @map("tenant_id")
-  parentRoleId  String?     @map("parent_role_id")   // for role hierarchy
+  id           String  @id @default(uuid())
+  tenantId     String  @map("tenant_id")
+  parentRoleId String? @map("parent_role_id") // for role hierarchy
 
-  name          String
-  description   String?
-  department    String?
-  status        RoleStatus  @default(ACTIVE)
-  isSystemRole  Boolean     @default(false) @map("is_system_role") // prevents deletion of core roles
+  name         String
+  description  String?
+  department   String?
+  status       RoleStatus @default(ACTIVE)
+  isSystemRole Boolean    @default(false) @map("is_system_role") // prevents deletion of core roles
 
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
-  deletedAt     DateTime?   @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
-  tenant            Tenant           @relation(fields: [tenantId], references: [id])
-  parentRole        Role?            @relation("RoleHierarchy", fields: [parentRoleId], references: [id])
-  childRoles        Role[]           @relation("RoleHierarchy")
-  users             User[]
-  rolePermissions   RolePermission[]
-  approverSteps     WorkflowStep[] @relation("StepApproverRole")
-  escalationSteps   WorkflowStep[] @relation("StepEscalationRole")
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  parentRole      Role?            @relation("RoleHierarchy", fields: [parentRoleId], references: [id])
+  childRoles      Role[]           @relation("RoleHierarchy")
+  users           User[]
+  rolePermissions RolePermission[]
+  approverSteps   WorkflowStep[]   @relation("StepApproverRole")
+  escalationSteps WorkflowStep[]   @relation("StepEscalationRole")
 
   @@unique([tenantId, name])
   @@index([tenantId, status])
@@ -149,12 +149,12 @@ model Role {
 // ============================
 
 model Permission {
-  id            String            @id @default(uuid())
-  module        String            // e.g. "brand_orders", "vendor_portal", "audit_logs"
-  action        PermissionAction
-  label         String            // human-readable, e.g. "Approve Brand Orders"
+  id     String           @id @default(uuid())
+  module String // e.g. "brand_orders", "vendor_portal", "audit_logs"
+  action PermissionAction
+  label  String // human-readable, e.g. "Approve Brand Orders"
 
-  createdAt     DateTime          @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   rolePermissions RolePermission[]
 
@@ -167,14 +167,14 @@ model Permission {
 // ============================
 
 model RolePermission {
-  id            String     @id @default(uuid())
-  roleId        String     @map("role_id")
-  permissionId  String     @map("permission_id")
+  id           String @id @default(uuid())
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
 
-  createdAt     DateTime   @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  role          Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission    Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, permissionId])
   @@map("role_permissions")
@@ -185,14 +185,14 @@ model RolePermission {
 // ============================
 
 model RefreshToken {
-  id            String    @id @default(uuid())
-  userId        String    @map("user_id")
-  tokenHash     String    @map("token_hash")
-  expiresAt     DateTime  @map("expires_at")
-  revokedAt     DateTime? @map("revoked_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("refresh_tokens")
@@ -221,24 +221,24 @@ enum ApprovalDecision {
 // ============================
 
 model WorkflowRule {
-  id                String    @id @default(uuid())
-  tenantId          String    @map("tenant_id")
+  id       String @id @default(uuid())
+  tenantId String @map("tenant_id")
 
-  name              String
-  module            String
-  description       String?
+  name        String
+  module      String
+  description String?
 
-  isActive          Boolean   @default(true) @map("is_active")
-  autoApprove       Boolean   @default(false) @map("auto_approve")
-  escalationHours   Int?      @map("escalation_hours")
+  isActive        Boolean @default(true) @map("is_active")
+  autoApprove     Boolean @default(false) @map("auto_approve")
+  escalationHours Int?    @map("escalation_hours")
 
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-  deletedAt         DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
-  tenant            Tenant             @relation(fields: [tenantId], references: [id])
-  steps             WorkflowStep[]
-  instances         WorkflowInstance[]
+  tenant    Tenant             @relation(fields: [tenantId], references: [id])
+  steps     WorkflowStep[]
+  instances WorkflowInstance[]
 
   @@unique([tenantId, module])
   @@map("workflow_rules")
@@ -249,20 +249,20 @@ model WorkflowRule {
 // ============================
 
 model WorkflowStep {
-  id                 String   @id @default(uuid())
-  workflowRuleId     String   @map("workflow_rule_id")
+  id             String @id @default(uuid())
+  workflowRuleId String @map("workflow_rule_id")
 
-  stepOrder          Int      @map("step_order")
-  approverRoleId     String   @map("approver_role_id")
-  escalationRoleId   String?  @map("escalation_role_id")
-  isOptional         Boolean  @default(false) @map("is_optional")
+  stepOrder        Int     @map("step_order")
+  approverRoleId   String  @map("approver_role_id")
+  escalationRoleId String? @map("escalation_role_id")
+  isOptional       Boolean @default(false) @map("is_optional")
 
-  createdAt          DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  workflowRule       WorkflowRule @relation(fields: [workflowRuleId], references: [id], onDelete: Cascade)
-  approverRole       Role         @relation("StepApproverRole", fields: [approverRoleId], references: [id])
-  escalationRole     Role?        @relation("StepEscalationRole", fields: [escalationRoleId], references: [id])
-  actions            ApprovalAction[]
+  workflowRule   WorkflowRule     @relation(fields: [workflowRuleId], references: [id], onDelete: Cascade)
+  approverRole   Role             @relation("StepApproverRole", fields: [approverRoleId], references: [id])
+  escalationRole Role?            @relation("StepEscalationRole", fields: [escalationRoleId], references: [id])
+  actions        ApprovalAction[]
 
   @@unique([workflowRuleId, stepOrder])
   @@map("workflow_steps")
@@ -273,25 +273,25 @@ model WorkflowStep {
 // ============================
 
 model WorkflowInstance {
-  id                String                  @id @default(uuid())
-  tenantId          String                  @map("tenant_id")
-  workflowRuleId    String                  @map("workflow_rule_id")
+  id             String @id @default(uuid())
+  tenantId       String @map("tenant_id")
+  workflowRuleId String @map("workflow_rule_id")
 
-  entityType        String                  @map("entity_type")
-  entityId          String                  @map("entity_id")
+  entityType String @map("entity_type")
+  entityId   String @map("entity_id")
 
-  status            WorkflowInstanceStatus  @default(PENDING)
-  currentStepOrder  Int                     @default(1) @map("current_step_order")
+  status           WorkflowInstanceStatus @default(PENDING)
+  currentStepOrder Int                    @default(1) @map("current_step_order")
 
-  initiatedById     String?                  @map("initiated_by_id")
+  initiatedById String? @map("initiated_by_id")
 
-  createdAt         DateTime                @default(now()) @map("created_at")
-  updatedAt         DateTime                @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  tenant            Tenant       @relation(fields: [tenantId], references: [id])
-  workflowRule      WorkflowRule @relation(fields: [workflowRuleId], references: [id])
-  initiatedBy       User?         @relation(fields: [initiatedById], references: [id])
-  actions           ApprovalAction[]
+  tenant       Tenant           @relation(fields: [tenantId], references: [id])
+  workflowRule WorkflowRule     @relation(fields: [workflowRuleId], references: [id])
+  initiatedBy  User?            @relation(fields: [initiatedById], references: [id])
+  actions      ApprovalAction[]
 
   @@index([tenantId, status])
   @@index([entityType, entityId])
@@ -303,23 +303,24 @@ model WorkflowInstance {
 // ============================
 
 model ApprovalAction {
-  id                  String            @id @default(uuid())
-  workflowInstanceId  String            @map("workflow_instance_id")
-  workflowStepId      String            @map("workflow_step_id")
+  id                 String @id @default(uuid())
+  workflowInstanceId String @map("workflow_instance_id")
+  workflowStepId     String @map("workflow_step_id")
 
-  actionByUserId      String?           @map("action_by_user_id")
-  decision            ApprovalDecision
-  remarks             String?
+  actionByUserId String?          @map("action_by_user_id")
+  decision       ApprovalDecision
+  remarks        String?
 
-  createdAt           DateTime          @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  workflowInstance    WorkflowInstance  @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
-  workflowStep        WorkflowStep      @relation(fields: [workflowStepId], references: [id])
-  actionByUser        User?             @relation(fields: [actionByUserId], references: [id])
+  workflowInstance WorkflowInstance @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+  workflowStep     WorkflowStep     @relation(fields: [workflowStepId], references: [id])
+  actionByUser     User?            @relation(fields: [actionByUserId], references: [id])
 
   @@index([workflowInstanceId])
   @@map("approval_actions")
 }
+
 // ============================
 // BUSINESS PROFILE — ENUMS
 // ============================
@@ -344,35 +345,35 @@ enum BrandApprovalStatus {
 // ============================
 
 model BusinessProfile {
-  id              String        @id @default(uuid())
+  id String @id @default(uuid())
 
-  legalName       String        @map("legal_name")
-  businessType    BusinessType  @map("business_type")
+  legalName    String       @map("legal_name")
+  businessType BusinessType @map("business_type")
 
-  panNumber       String?        @map("pan_number")
-  gstNumber       String?       @map("gst_number")
-  msmeNumber      String?       @map("msme_number")
-  cinNumber       String?        @map("cin_number")
+  panNumber  String? @map("pan_number")
+  gstNumber  String? @map("gst_number")
+  msmeNumber String? @map("msme_number")
+  cinNumber  String? @map("cin_number")
 
-  panDocUrl       String?       @map("pan_doc_url")
-  gstDocUrl       String?       @map("gst_doc_url")
-  msmeDocUrl      String?       @map("msme_doc_url")
-  cinDocUrl       String?        @map("cin_doc_Url")
+  panDocUrl  String? @map("pan_doc_url")
+  gstDocUrl  String? @map("gst_doc_url")
+  msmeDocUrl String? @map("msme_doc_url")
+  cinDocUrl  String? @map("cin_doc_Url")
 
-  addressLine1    String        @map("address_line1")
-  addressLine2    String?       @map("address_line2")
-  city            String
-  state           String
-  pincode         String
-  country         String        @default("India")
+  addressLine1 String  @map("address_line1")
+  addressLine2 String? @map("address_line2")
+  city         String
+  state        String
+  pincode      String
+  country      String  @default("India")
 
-  isVerified      Boolean       @default(false) @map("is_verified")
-  verifiedAt      DateTime?     @map("verified_at")
+  isVerified Boolean   @default(false) @map("is_verified")
+  verifiedAt DateTime? @map("verified_at")
 
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  brand           Brand?
+  brand Brand?
 
   @@unique([panNumber])
   @@map("business_profiles")
@@ -383,29 +384,29 @@ model BusinessProfile {
 // ============================
 
 model Brand {
-  id                  String               @id @default(uuid())
-  tenantId            String               @map("tenant_id")
-  businessProfileId   String               @unique @map("business_profile_id")
+  id                String @id @default(uuid())
+  tenantId          String @map("tenant_id")
+  businessProfileId String @unique @map("business_profile_id")
 
-  brandName           String               @map("brand_name")
-  contactPersonName   String               @map("contact_person_name")
-  email               String
-  phone               String
-  passwordHash        String?              @map("password_hash")
+  brandName         String  @map("brand_name")
+  contactPersonName String  @map("contact_person_name")
+  email             String
+  phone             String
+  passwordHash      String? @map("password_hash")
 
-  logoUrl             String?              @map("logo_url")
-  approvalStatus       BrandApprovalStatus @default(PENDING) @map("approval_status")
-  workflowInstanceId   String?             @map("workflow_instance_id")
+  logoUrl            String?             @map("logo_url")
+  approvalStatus     BrandApprovalStatus @default(PENDING) @map("approval_status")
+  workflowInstanceId String?             @map("workflow_instance_id")
 
-  isActive            Boolean              @default(true) @map("is_active")
+  isActive Boolean @default(true) @map("is_active")
 
-  createdAt           DateTime             @default(now()) @map("created_at")
-  updatedAt           DateTime             @updatedAt @map("updated_at")
-  deletedAt            DateTime?           @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
-  tenant              Tenant               @relation(fields: [tenantId], references: [id])
-  businessProfile     BusinessProfile      @relation(fields: [businessProfileId], references: [id])
-  productRates        BrandProductRate[]
+  tenant          Tenant             @relation(fields: [tenantId], references: [id])
+  businessProfile BusinessProfile    @relation(fields: [businessProfileId], references: [id])
+  productRates    BrandProductRate[]
 
   @@unique([tenantId, email])
   @@index([tenantId, approvalStatus])
@@ -427,18 +428,18 @@ enum ProductStatus {
 // ============================
 
 model ProductCategory {
-  id            String    @id @default(uuid())
-  tenantId      String    @map("tenant_id")
+  id       String @id @default(uuid())
+  tenantId String @map("tenant_id")
 
-  name          String
-  description   String?
+  name        String
+  description String?
 
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  deletedAt     DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
-  tenant        Tenant    @relation(fields: [tenantId], references: [id])
-  products      Product[]
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  products Product[]
 
   @@unique([tenantId, name])
   @@map("product_categories")
@@ -449,26 +450,28 @@ model ProductCategory {
 // ============================
 
 model Product {
-  id              String         @id @default(uuid())
-  tenantId        String         @map("tenant_id")
-  categoryId      String?        @map("category_id")
+  id         String  @id @default(uuid())
+  tenantId   String  @map("tenant_id")
+  categoryId String? @map("category_id")
 
-  name            String
-  sku             String?
-  description     String?
-  unit            String         @default("sq.ft")
+  name        String
+  sku         String?
+  description String?
+  unit        String  @default("sq.ft")
 
-  imageUrls       String[]       @map("image_urls")
+  imageUrls String[] @map("image_urls")
 
-  status          ProductStatus  @default(ACTIVE)
+  status ProductStatus @default(ACTIVE)
 
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
-  deletedAt       DateTime?      @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
-  tenant          Tenant             @relation(fields: [tenantId], references: [id])
-  category        ProductCategory?   @relation(fields: [categoryId], references: [id])
-  brandRates      BrandProductRate[]
+  tenant            Tenant              @relation(fields: [tenantId], references: [id])
+  category          ProductCategory?    @relation(fields: [categoryId], references: [id])
+  regionRates       ProductRegionRate[]
+  vendorRegionRates VendorRegionRate[]
+  brandRates        BrandProductRate[]
 
   @@unique([tenantId, sku])
   @@index([tenantId, status])
@@ -476,27 +479,82 @@ model Product {
 }
 
 // ============================
-// BRAND PRODUCT RATE
+// REGION ENUM
+// ============================
+
+enum Region {
+  PAN_INDIA
+  NORTH_INDIA
+  SOUTH_INDIA
+  EAST_INDIA
+  WEST_INDIA
+  KERALA
+}
+
+// ============================
+// PRODUCT REGION RATE (Brand-side selling price master)
+// ============================
+
+model ProductRegionRate {
+  id        String @id @default(uuid())
+  productId String @map("product_id")
+  region    Region
+
+  rate Decimal @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, region])
+  @@map("product_region_rates")
+}
+
+// ============================
+// VENDOR REGION RATE (Vendor-side payout price master)
+// ============================
+
+model VendorRegionRate {
+  id        String @id @default(uuid())
+  productId String @map("product_id")
+  region    Region
+
+  rate Decimal @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, region])
+  @@map("vendor_region_rates")
+}
+
+// ============================
+// BRAND PRODUCT RATE (region-based + override)
 // ============================
 
 model BrandProductRate {
-  id            String    @id @default(uuid())
-  tenantId      String    @map("tenant_id")
-  brandId       String    @map("brand_id")
-  productId     String    @map("product_id")
+  id        String @id @default(uuid())
+  tenantId  String @map("tenant_id")
+  brandId   String @map("brand_id")
+  productId String @map("product_id")
 
-  rate          Decimal   @db.Decimal(10, 2)
-  isActive      Boolean   @default(true) @map("is_active")
+  region       Region
+  isCustomRate Boolean  @default(false) @map("is_custom_rate")
+  customRate   Decimal? @map("custom_rate") @db.Decimal(10, 2)
 
-  assignedById  String    @map("assigned_by_id")
+  isActive     Boolean @default(true) @map("is_active")
+  assignedById String  @map("assigned_by_id")
 
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  tenant        Tenant   @relation(fields: [tenantId], references: [id])
-  brand         Brand    @relation(fields: [brandId], references: [id])
-  product       Product  @relation(fields: [productId], references: [id])
-  assignedBy    User     @relation(fields: [assignedById], references: [id])
+  tenant     Tenant  @relation(fields: [tenantId], references: [id])
+  brand      Brand   @relation(fields: [brandId], references: [id])
+  product    Product @relation(fields: [productId], references: [id])
+  assignedBy User    @relation(fields: [assignedById], references: [id])
 
   @@unique([brandId, productId])
   @@index([tenantId, brandId])

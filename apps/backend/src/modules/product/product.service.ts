@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateProductDto } from './dto/create-product.dto';
+import { CreateProductDto, RegionRateInput } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
 
@@ -21,7 +21,37 @@ export class ProductService {
       });
       if (existing) throw new ConflictException('SKU already exists');
     }
-    return this.prisma.product.create({ data: { tenantId, ...dto } });
+
+    const product = await this.prisma.product.create({
+      data: {
+        tenantId,
+        name: dto.name,
+        sku: dto.sku,
+        description: dto.description,
+        unit: dto.unit,
+        categoryId: dto.categoryId,
+        imageUrls: dto.imageUrls ?? [],
+        status: dto.status,
+      },
+    });
+
+    await this.prisma.productRegionRate.createMany({
+      data: dto.brandRegionRates.map((r) => ({
+        productId: product.id,
+        region: r.region,
+        rate: r.rate,
+      })),
+    });
+
+    await this.prisma.vendorRegionRate.createMany({
+      data: dto.vendorRegionRates.map((r) => ({
+        productId: product.id,
+        region: r.region,
+        rate: r.rate,
+      })),
+    });
+
+    return this.findOne(tenantId, product.id);
   }
 
   async findAll(tenantId: string) {
@@ -35,7 +65,11 @@ export class ProductService {
   async findOne(tenantId: string, id: string) {
     const product = await this.prisma.product.findFirst({
       where: { id, tenantId, deletedAt: null },
-      include: { category: true },
+      include: {
+        category: true,
+        regionRates: true,
+        vendorRegionRates: true,
+      },
     });
     if (!product) throw new NotFoundException('Product not found');
     return product;
@@ -43,7 +77,50 @@ export class ProductService {
 
   async update(tenantId: string, id: string, dto: UpdateProductDto) {
     await this.findOne(tenantId, id);
-    return this.prisma.product.update({ where: { id }, data: dto });
+
+    const { brandRegionRates, vendorRegionRates, ...productData } = dto;
+
+    return this.prisma.product.update({ where: { id }, data: productData });
+  }
+
+  async updateBrandRegionRates(
+    tenantId: string,
+    productId: string,
+    rates: RegionRateInput[],
+  ) {
+    await this.findOne(tenantId, productId); // ensures product exists + belongs to tenant
+
+    await Promise.all(
+      rates.map((r) =>
+        this.prisma.productRegionRate.upsert({
+          where: { productId_region: { productId, region: r.region } },
+          update: { rate: r.rate },
+          create: { productId, region: r.region, rate: r.rate },
+        }),
+      ),
+    );
+
+    return this.findOne(tenantId, productId);
+  }
+
+  async updateVendorRegionRates(
+    tenantId: string,
+    productId: string,
+    rates: RegionRateInput[],
+  ) {
+    await this.findOne(tenantId, productId);
+
+    await Promise.all(
+      rates.map((r) =>
+        this.prisma.vendorRegionRate.upsert({
+          where: { productId_region: { productId, region: r.region } },
+          update: { rate: r.rate },
+          create: { productId, region: r.region, rate: r.rate },
+        }),
+      ),
+    );
+
+    return this.findOne(tenantId, productId);
   }
 
   async remove(tenantId: string, id: string) {
