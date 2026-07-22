@@ -11,6 +11,8 @@ import { WorkflowRuleModule } from './modules/workflow-rule/workflow-rule.module
 import { WorkflowInstanceModule } from './modules/workflow-instance/workflow-instance.module';
 import { BrandModule } from './modules/brand/brand.module';
 import { ProductModule } from './modules/product/product.module';
+import { OrderModule } from './modules/order/order.module';
+import { PurchaseOrderModule } from './modules/purchase-order/purchase-order.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { ProductModule } from './modules/product/product.module';
     WorkflowInstanceModule,
     BrandModule,
     ProductModule,
+    OrderModule,
+    PurchaseOrderModule,
   ],
   controllers: [AppController],
   providers: [AppService],

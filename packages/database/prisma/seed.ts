@@ -44,6 +44,10 @@ async function main() {
     "workflow",
     "brand",
     "product",
+    "order",
+    "purchase_order",
+    "creative_artwork",
+    "vendor_assignment",
   ];
   const actions = Object.values(PermissionAction);
 
