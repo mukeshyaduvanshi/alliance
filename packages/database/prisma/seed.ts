@@ -49,6 +49,9 @@ async function main() {
     "creative_artwork",
     "vendor_assignment",
     "vendor",
+    "sla_rule",
+    "dashboard",
+    "alert",
   ];
   const actions = Object.values(PermissionAction);
 

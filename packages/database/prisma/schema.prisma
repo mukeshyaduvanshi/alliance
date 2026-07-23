@@ -79,6 +79,8 @@ model Tenant {
   orders             Order[]
   vendorProductRates VendorProductRate[]
   orderNegotiations  OrderNegotiation[]
+  slaRules           SlaRule[]
+  exceptionAlerts    ExceptionAlert[]
 
   @@map("tenants")
 }
@@ -114,6 +116,8 @@ model User {
   createdPurchaseOrders PurchaseOrder[]
   uploadedArtworks      OrderArtwork[]
   respondedNegotiations OrderNegotiation[]
+  resolvedAlerts        ExceptionAlert[]
+  assignedBrands        Brand[]            @relation("BrandKam")
 
   @@unique([tenantId, email])
   @@index([tenantId, status])
@@ -419,6 +423,9 @@ model Brand {
   purchaseOrders  PurchaseOrder[]
   orders          Order[]
 
+  assignedKamId String? @map("assigned_kam_id")
+  assignedKam   User?   @relation("BrandKam", fields: [assignedKamId], references: [id])
+
   @@unique([tenantId, email])
   @@index([tenantId, approvalStatus])
   @@map("brands")
@@ -591,6 +598,7 @@ enum ArtworkFileType {
 
 enum OrderStatus {
   PLACED
+  DELIVERED
   CREATIVE_IN_PROGRESS
   PENDING_BRAND_APPROVAL
   ARTWORK_REJECTED
@@ -816,4 +824,73 @@ model OrderNegotiation {
 
   @@index([orderId])
   @@map("order_negotiations")
+}
+
+// ============================
+// MONITORING — ENUMS
+// ============================
+
+enum AlertType {
+  SLA_BREACH
+  NEGOTIATION_STUCK
+  APPROVAL_OVERDUE
+  OTHER
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// ============================
+// SLA RULE (Admin-configured thresholds)
+// ============================
+
+model SlaRule {
+  id       String @id @default(uuid())
+  tenantId String @map("tenant_id")
+
+  name            String
+  appliesToStatus OrderStatus @map("applies_to_status")
+  thresholdHours  Int         @map("threshold_hours")
+
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, appliesToStatus])
+  @@map("sla_rules")
+}
+
+// ============================
+// EXCEPTION ALERT
+// ============================
+
+model ExceptionAlert {
+  id       String @id @default(uuid())
+  tenantId String @map("tenant_id")
+
+  type     AlertType
+  severity AlertSeverity @default(MEDIUM)
+  message  String
+
+  entityType String @map("entity_type")
+  entityId   String @map("entity_id")
+
+  isResolved   Boolean   @default(false) @map("is_resolved")
+  resolvedById String?   @map("resolved_by_id")
+  resolvedAt   DateTime? @map("resolved_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant     Tenant @relation(fields: [tenantId], references: [id])
+  resolvedBy User?  @relation(fields: [resolvedById], references: [id])
+
+  @@index([tenantId, isResolved])
+  @@index([entityType, entityId])
+  @@map("exception_alerts")
 }
