@@ -13,6 +13,7 @@ import { BrandModule } from './modules/brand/brand.module';
 import { ProductModule } from './modules/product/product.module';
 import { OrderModule } from './modules/order/order.module';
 import { PurchaseOrderModule } from './modules/purchase-order/purchase-order.module';
+import { VendorModule } from './modules/vendor/vendor.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { PurchaseOrderModule } from './modules/purchase-order/purchase-order.mod
     ProductModule,
     OrderModule,
     PurchaseOrderModule,
+    VendorModule,
   ],
   controllers: [AppController],
   providers: [AppService],

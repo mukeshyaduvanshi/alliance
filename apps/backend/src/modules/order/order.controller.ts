@@ -16,11 +16,16 @@ import { OrderService } from './order.service';
 import { SubmitArtworkDto } from './dto/submit-artwork.dto';
 import { AssignVendorDto } from './dto/assign-vendor.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { OrderNegotiationService } from './order-negotiation.service';
+import { RespondNegotiationDto } from './dto/respond-negotiation.dto';
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('orders')
 export class OrderController {
-  constructor(private orderService: OrderService) {}
+  constructor(
+    private orderService: OrderService,
+    private negotiationService: OrderNegotiationService,
+  ) {}
 
   @RequirePermission('order', 'VIEW')
   @Get()
@@ -77,5 +82,26 @@ export class OrderController {
     @Body() dto: UpdateOrderStatusDto,
   ) {
     return this.orderService.updateStatus(req.user.tenantId, id, dto.status);
+  }
+
+  @RequirePermission('order', 'VIEW')
+  @Get(':id/negotiations')
+  listNegotiations(@Req() req: any, @Param('id') id: string) {
+    return this.negotiationService.listForManagers(req.user.tenantId, id);
+  }
+
+  @RequirePermission('order', 'APPROVE')
+  @Post('negotiations/:negotiationId/respond')
+  respondNegotiation(
+    @Req() req: any,
+    @Param('negotiationId') negotiationId: string,
+    @Body() dto: RespondNegotiationDto,
+  ) {
+    return this.negotiationService.respond(
+      req.user.tenantId,
+      negotiationId,
+      req.user.userId,
+      dto,
+    );
   }
 }

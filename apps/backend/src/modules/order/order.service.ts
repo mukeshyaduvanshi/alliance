@@ -7,10 +7,14 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { OrderStatus } from '@database/database';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { SubmitArtworkDto } from './dto/submit-artwork.dto';
+import { OrderNegotiationService } from './order-negotiation.service';
 
 @Injectable()
 export class OrderService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private negotiationService: OrderNegotiationService,
+  ) {}
 
   private async resolveOrderItems(
     brandId: string,
@@ -232,10 +236,15 @@ export class OrderService {
     if (order.status !== 'PENDING_VENDOR_ASSIGNMENT') {
       throw new BadRequestException('Order is not ready for vendor assignment');
     }
-    return this.prisma.order.update({
+
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { vendorId, status: 'VENDOR_ASSIGNED' },
     });
+
+    await this.negotiationService.computeVendorAmounts(orderId, vendorId);
+
+    return updated;
   }
 
   async updateStatus(tenantId: string, orderId: string, status: OrderStatus) {

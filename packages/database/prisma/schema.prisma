@@ -66,17 +66,19 @@ model Tenant {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  users             User[]
-  roles             Role[]
-  workflowRules     WorkflowRule[]
-  workflowInstances WorkflowInstance[]
-  brand             Brand[]
-  productCategories ProductCategory[]
-  products          Product[]
-  brandProductRates BrandProductRate[]
-  purchaseOrders    PurchaseOrder[]
-  vendors           Vendor[]
-  orders            Order[]
+  users              User[]
+  roles              Role[]
+  workflowRules      WorkflowRule[]
+  workflowInstances  WorkflowInstance[]
+  brand              Brand[]
+  productCategories  ProductCategory[]
+  products           Product[]
+  brandProductRates  BrandProductRate[]
+  purchaseOrders     PurchaseOrder[]
+  vendors            Vendor[]
+  orders             Order[]
+  vendorProductRates VendorProductRate[]
+  orderNegotiations  OrderNegotiation[]
 
   @@map("tenants")
 }
@@ -111,6 +113,7 @@ model User {
   assignedRates         BrandProductRate[]
   createdPurchaseOrders PurchaseOrder[]
   uploadedArtworks      OrderArtwork[]
+  respondedNegotiations OrderNegotiation[]
 
   @@unique([tenantId, email])
   @@index([tenantId, status])
@@ -378,7 +381,8 @@ model BusinessProfile {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  brand Brand?
+  brand   Brand?
+  vendors Vendor[]
 
   @@unique([panNumber])
   @@map("business_profiles")
@@ -480,6 +484,7 @@ model Product {
   vendorRegionRates VendorRegionRate[]
   brandRates        BrandProductRate[]
   orderItems        OrderItem[]
+  vendorRates       VendorProductRate[]
 
   @@unique([tenantId, sku])
   @@index([tenantId, status])
@@ -628,25 +633,6 @@ model PurchaseOrder {
 }
 
 // ============================
-// VENDOR (minimal stub — expanded in Module 4)
-// ============================
-
-model Vendor {
-  id       String @id @default(uuid())
-  tenantId String @map("tenant_id")
-
-  vendorName String  @map("vendor_name")
-  isActive   Boolean @default(true) @map("is_active")
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  tenant Tenant  @relation(fields: [tenantId], references: [id])
-  orders Order[]
-
-  @@map("vendors")
-}
-
-// ============================
 // ORDER
 // ============================
 
@@ -668,12 +654,14 @@ model Order {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  tenant   Tenant         @relation(fields: [tenantId], references: [id])
-  brand    Brand          @relation(fields: [brandId], references: [id])
-  po       PurchaseOrder? @relation(fields: [poId], references: [id])
-  vendor   Vendor?        @relation(fields: [vendorId], references: [id])
-  items    OrderItem[]
-  artworks OrderArtwork[]
+  tenant            Tenant             @relation(fields: [tenantId], references: [id])
+  brand             Brand              @relation(fields: [brandId], references: [id])
+  po                PurchaseOrder?     @relation(fields: [poId], references: [id])
+  vendor            Vendor?            @relation(fields: [vendorId], references: [id])
+  vendorTotalAmount Decimal?           @map("vendor_total_amount") @db.Decimal(12, 2)
+  items             OrderItem[]
+  artworks          OrderArtwork[]
+  negotiations      OrderNegotiation[]
 
   @@index([tenantId, status])
   @@index([brandId])
@@ -696,8 +684,10 @@ model OrderItem {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  order              Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product            Product  @relation(fields: [productId], references: [id])
+  vendorRateSnapshot Decimal? @map("vendor_rate_snapshot") @db.Decimal(10, 2)
+  vendorAmount       Decimal? @map("vendor_amount") @db.Decimal(12, 2)
 
   @@map("order_items")
 }
@@ -722,4 +712,108 @@ model OrderArtwork {
   uploadedBy User? @relation(fields: [uploadedByUserId], references: [id])
 
   @@map("order_artworks")
+}
+
+// ============================
+// VENDOR — ENUMS
+// ============================
+
+enum VendorApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NegotiationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+// ============================
+// VENDOR (fully build — mirrors Brand from Module 3A)
+// ============================
+
+model Vendor {
+  id                String  @id @default(uuid())
+  tenantId          String  @map("tenant_id")
+  businessProfileId String? @map("business_profile_id")
+
+  vendorName        String  @map("vendor_name")
+  contactPersonName String? @map("contact_person_name")
+  email             String?
+  phone             String?
+  passwordHash      String? @map("password_hash")
+
+  approvalStatus     VendorApprovalStatus @default(PENDING) @map("approval_status")
+  workflowInstanceId String?              @map("workflow_instance_id")
+
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+  businessProfile BusinessProfile?    @relation(fields: [businessProfileId], references: [id])
+  orders          Order[]
+  productRates    VendorProductRate[]
+  negotiations    OrderNegotiation[]
+
+  @@unique([tenantId, email])
+  @@map("vendors")
+}
+
+// ============================
+// VENDOR PRODUCT RATE (Vendor region from Admin's master)
+// ============================
+
+model VendorProductRate {
+  id        String @id @default(uuid())
+  tenantId  String @map("tenant_id")
+  vendorId  String @map("vendor_id")
+  productId String @map("product_id")
+
+  region Region
+
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  Vendor  Vendor  @relation(fields: [vendorId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([vendorId, productId])
+  @@map("vendor_product_rates")
+}
+
+// ============================
+// ORDER NEGOTIATION (full history, visible to Managers)
+// ============================
+
+model OrderNegotiation {
+  id       String @id @default(uuid())
+  tenantId String @map("tenant_id")
+  orderId  String @map("order_id")
+  vendorId String @map("vendor_id")
+
+  proposedAmount Decimal @map("proposed_amount") @db.Decimal(12, 2)
+  remarks        String?
+
+  status          NegotiationStatus @default(PENDING)
+  respondedById   String?           @map("responded_by_id")
+  responseRemarks String?           @map("response_remarks")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  respondedAt DateTime? @map("responded_at")
+
+  tenant      Tenant @relation(fields: [tenantId], references: [id])
+  order       Order  @relation(fields: [orderId], references: [id])
+  vendor      Vendor @relation(fields: [vendorId], references: [id])
+  respondedBy User?  @relation(fields: [respondedById], references: [id])
+
+  @@index([orderId])
+  @@map("order_negotiations")
 }
