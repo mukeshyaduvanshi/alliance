@@ -55,7 +55,9 @@ async function main() {
     "system_admin",
     "audit_log",
     "notification",
+    "business_model",
   ];
+
   const actions = Object.values(PermissionAction);
 
   for (const module of modules) {

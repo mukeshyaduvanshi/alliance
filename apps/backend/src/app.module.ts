@@ -21,6 +21,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { BusinessModelModule } from './modules/business-model/business-model.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { NotificationModule } from './modules/notification/notification.module';
     SystemAdminModule,
     AuditLogModule,
     NotificationModule,
+    BusinessModelModule,
   ],
   controllers: [AppController],
   providers: [

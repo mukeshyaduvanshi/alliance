@@ -66,22 +66,23 @@ model Tenant {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  users              User[]
-  roles              Role[]
-  workflowRules      WorkflowRule[]
-  workflowInstances  WorkflowInstance[]
-  brand              Brand[]
-  productCategories  ProductCategory[]
-  products           Product[]
-  brandProductRates  BrandProductRate[]
-  purchaseOrders     PurchaseOrder[]
-  vendors            Vendor[]
-  orders             Order[]
-  vendorProductRates VendorProductRate[]
-  orderNegotiations  OrderNegotiation[]
-  slaRules           SlaRule[]
-  exceptionAlerts    ExceptionAlert[]
-  license            License?
+  users                     User[]
+  roles                     Role[]
+  workflowRules             WorkflowRule[]
+  workflowInstances         WorkflowInstance[]
+  brand                     Brand[]
+  productCategories         ProductCategory[]
+  products                  Product[]
+  brandProductRates         BrandProductRate[]
+  purchaseOrders            PurchaseOrder[]
+  vendors                   Vendor[]
+  orders                    Order[]
+  vendorProductRates        VendorProductRate[]
+  orderNegotiations         OrderNegotiation[]
+  slaRules                  SlaRule[]
+  exceptionAlerts           ExceptionAlert[]
+  license                   License?
+  brandBusinessModelConfigs BrandBusinessModelConfig[]
 
   @@map("tenants")
 }
@@ -108,17 +109,18 @@ model User {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
 
-  tenant                Tenant             @relation(fields: [tenantId], references: [id])
-  role                  Role               @relation(fields: [roleId], references: [id])
-  refreshTokens         RefreshToken[]
-  initiatedWorkflows    WorkflowInstance[]
-  approvalActions       ApprovalAction[]
-  assignedRates         BrandProductRate[]
-  createdPurchaseOrders PurchaseOrder[]
-  uploadedArtworks      OrderArtwork[]
-  respondedNegotiations OrderNegotiation[]
-  resolvedAlerts        ExceptionAlert[]
-  assignedBrands        Brand[]            @relation("BrandKam")
+  tenant                    Tenant                     @relation(fields: [tenantId], references: [id])
+  role                      Role                       @relation(fields: [roleId], references: [id])
+  refreshTokens             RefreshToken[]
+  initiatedWorkflows        WorkflowInstance[]
+  approvalActions           ApprovalAction[]
+  assignedRates             BrandProductRate[]
+  createdPurchaseOrders     PurchaseOrder[]
+  uploadedArtworks          OrderArtwork[]
+  respondedNegotiations     OrderNegotiation[]
+  resolvedAlerts            ExceptionAlert[]
+  assignedBrands            Brand[]                    @relation("BrandKam")
+  brandBusinessModelConfigs BrandBusinessModelConfig[]
 
   @@unique([tenantId, email])
   @@index([tenantId, status])
@@ -424,8 +426,9 @@ model Brand {
   purchaseOrders  PurchaseOrder[]
   orders          Order[]
 
-  assignedKamId String? @map("assigned_kam_id")
-  assignedKam   User?   @relation("BrandKam", fields: [assignedKamId], references: [id])
+  assignedKamId            String?                   @map("assigned_kam_id")
+  assignedKam              User?                     @relation("BrandKam", fields: [assignedKamId], references: [id])
+  brandBusinessModelConfig BrandBusinessModelConfig?
 
   @@unique([tenantId, email])
   @@index([tenantId, approvalStatus])
@@ -1125,4 +1128,41 @@ model Notification {
 
   @@index([tenantId, recipientType, recipientId, isRead])
   @@map("notifications")
+}
+
+// ============================
+// BUSINESS MODEL — ENUM
+// ============================
+
+enum BusinessModelType {
+  VENDOR_MODEL
+  MEDIATOR_MODEL
+  HYBRID_MODEL
+}
+
+// ============================
+// BRAND BUSINESS MODEL CONFIG
+// ============================
+
+model BrandBusinessModelConfig {
+  id       String @id @default(uuid())
+  tenantId String @map("tenant_id")
+  brandId  String @unique @map("brand_id") // one active config per Brand
+
+  businessModel BusinessModelType @map("business_model")
+
+  commissionPercent Decimal? @map("commission_percent") @db.Decimal(5, 2) // used in MEDIATOR_MODEL
+  markupPercent     Decimal? @map("markup_percent") @db.Decimal(5, 2) // used in VENDOR_MODEL
+
+  configuredById String   @map("configured_by_id")
+  effectiveFrom  DateTime @default(now()) @map("effective_from")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant       Tenant @relation(fields: [tenantId], references: [id])
+  brand        Brand  @relation(fields: [brandId], references: [id])
+  configuredBy User   @relation(fields: [configuredById], references: [id])
+
+  @@map("brand_business_model_configs")
 }
