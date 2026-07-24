@@ -53,6 +53,7 @@ async function main() {
     "dashboard",
     "alert",
     "system_admin",
+    "audit_log",
   ];
   const actions = Object.values(PermissionAction);
 

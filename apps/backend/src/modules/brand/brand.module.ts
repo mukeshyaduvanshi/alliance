@@ -8,6 +8,7 @@ import { BrandRegistrationController } from './brand-registration.controller';
 import { BrandAuthController } from './brand-auth.controller';
 import { BrandJwtStrategy } from './strategies/brand-jwt.strategy';
 import { WorkflowInstanceModule } from '../workflow-instance/workflow-instance.module';
+import { AuditLogModule } from '../audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { WorkflowInstanceModule } from '../workflow-instance/workflow-instance.m
       }),
     }),
     WorkflowInstanceModule,
+    AuditLogModule,
   ],
   controllers: [
     BrandController,

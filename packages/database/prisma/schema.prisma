@@ -1033,3 +1033,63 @@ model License {
 
   @@map("licenses")
 }
+
+// ============================
+// AUDIT LOG — ENUMS
+// ============================
+
+enum ActorType {
+  INTERNAL_USER
+  BRAND
+  VENDOR
+  SYSTEM
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  FAILED_LOGIN
+  CREATE
+  UPDATE
+  DELETE
+  APPROVE
+  REJECT
+  STATUS_CHANGE
+  FILE_UPLOAD
+  FILE_DOWNLOAD
+  DATA_EXPORT
+  PASSWORD_CHANGE
+  PERMISSION_CHANGE
+  SECURITY_EVENT
+}
+
+// ============================
+// AUDIT LOG
+// ============================
+
+model AuditLog {
+  id       String  @id @default(uuid())
+  tenantId String? @map("tenant_id") // nullable — a failed login before tenant resolution might not have one
+
+  actorType ActorType @map("actor_type")
+  actorId   String?   @map("actor_id") // User/Brand/Vendor id — nullable for SYSTEM or unresolved failed logins
+  actorName String?   @map("actor_name") // denormalized snapshot — survives even if actor is later deleted
+
+  action     AuditAction
+  module     String // "user", "role", "brand", "order", "auth", etc.
+  entityType String?     @map("entity_type") // e.g. "Order" — polymorphic, same pattern as elsewhere
+  entityId   String?     @map("entity_id")
+
+  ipAddress String? @map("ip_address")
+  userAgent String? @map("user_agent")
+
+  metadata Json? // before/after values, extra context
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, module])
+  @@index([actorType, actorId])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}

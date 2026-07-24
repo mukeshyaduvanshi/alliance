@@ -17,6 +17,9 @@ import { VendorModule } from './modules/vendor/vendor.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { SystemAdminModule } from './modules/system-admin/system-admin.module';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -38,8 +41,15 @@ import { SystemAdminModule } from './modules/system-admin/system-admin.module';
     ScheduleModule.forRoot(),
     MonitoringModule,
     SystemAdminModule,
+    AuditLogModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
+    },
+  ],
 })
 export class AppModule {}

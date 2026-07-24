@@ -12,6 +12,7 @@ import { VendorOrderController } from './vendor-order.controller';
 import { VendorService } from './vendor.service';
 import { VendorRateService } from './vendor-rate.service';
 import { VendorJwtStrategy } from './strategies/vendor-jwt.strategy';
+import { AuditLogModule } from '../audit-log/audit-log.module';
 
 Module({
   imports: [
@@ -26,6 +27,7 @@ Module({
     }),
     WorkflowInstanceModule,
     OrderModule,
+    AuditLogModule,
   ],
   controllers: [
     VendorController,
