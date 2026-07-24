@@ -7,10 +7,14 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProposeNegotiationDto } from './dto/propose-negotiation.dto';
 import { RespondNegotiationDto } from './dto/respond-negotiation.dto';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class OrderNegotiationService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationService: NotificationService,
+  ) {}
 
   // Called internally when Admin assigns a Vendor — computes the vendor's payout amount
   async computeVendorAmounts(orderId: string, vendorId: string) {
@@ -138,6 +142,17 @@ export class OrderNegotiationService {
         responseRemarks: dto.responseRemarks,
         respondedAt: new Date(),
       },
+    });
+
+    await this.notificationService.notify({
+      tenantId,
+      recipientType: 'VENDOR',
+      recipientId: negotiation.vendorId,
+      title: `Negotiation ${dto.status === 'ACCEPTED' ? 'Accepted' : 'Rejected'}`,
+      message:
+        dto.responseRemarks ??
+        `Your proposed rate has been ${dto.status.toLowerCase()}.`,
+      link: `/orders/${negotiation.orderId}`,
     });
 
     if (dto.status === 'ACCEPTED') {

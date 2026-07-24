@@ -1093,3 +1093,36 @@ model AuditLog {
   @@index([entityType, entityId])
   @@map("audit_logs")
 }
+
+// ============================
+// NOTIFICATION — ENUMS
+// ============================
+
+enum NotificationRecipientType {
+  INTERNAL_USER
+  BRAND
+  VENDOR
+}
+
+// ============================
+// IN-APP NOTIFICATION (dashboard bell icon)
+// ============================
+
+model Notification {
+  id       String @id @default(uuid())
+  tenantId String @map("tenant_id")
+
+  recipientType NotificationRecipientType @map("recipient_type")
+  recipientId   String                    @map("recipient_id")
+
+  title   String
+  message String
+  link    String? // deep link e.g. "/orders/abc-123"
+
+  isRead Boolean @default(false) @map("is_read")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId, recipientType, recipientId, isRead])
+  @@map("notifications")
+}

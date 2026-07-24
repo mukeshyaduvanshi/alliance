@@ -8,12 +8,14 @@ import { OrderStatus } from '@database/database';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { SubmitArtworkDto } from './dto/submit-artwork.dto';
 import { OrderNegotiationService } from './order-negotiation.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class OrderService {
   constructor(
     private prisma: PrismaService,
     private negotiationService: OrderNegotiationService,
+    private notificationService: NotificationService,
   ) {}
 
   private async resolveOrderItems(
@@ -240,6 +242,15 @@ export class OrderService {
     const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { vendorId, status: 'VENDOR_ASSIGNED' },
+    });
+
+    await this.notificationService.notify({
+      tenantId,
+      recipientType: 'VENDOR',
+      recipientId: vendorId,
+      title: 'New Order Assigned',
+      message: `Order ${order.orderNumber} has been assigned to you.`,
+      link: `/orders/${orderId}`,
     });
 
     await this.negotiationService.computeVendorAmounts(orderId, vendorId);

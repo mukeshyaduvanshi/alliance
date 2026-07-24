@@ -12,6 +12,7 @@ import { WorkflowInstanceService } from '../workflow-instance/workflow-instance.
 import { RegisterBrandDto } from './dto/register-brand.dto';
 import { BrandLoginDto } from './dto/brand-login.dto';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class BrandService {
@@ -20,6 +21,7 @@ export class BrandService {
     private workflowInstanceService: WorkflowInstanceService,
     private jwtService: JwtService,
     private auditLogService: AuditLogService,
+    private notificationService: NotificationService,
   ) {}
 
   async register(tenantId: string, dto: RegisterBrandDto) {
@@ -143,6 +145,21 @@ export class BrandService {
       tenantId,
       brand.workflowInstanceId,
     );
+
+    if (instance.status === 'APPROVED') {
+      await this.notificationService.notify({
+        tenantId,
+        recipientType: 'BRAND',
+        recipientId: brandId,
+        title: 'Registration Approved',
+        message: 'Your ColorJet account has been approved. You can now log in.',
+        email: {
+          to: brand.email,
+          subject: 'Welcome to ColorJet — Account Approved',
+          html: `<p>Hi ${brand.contactPersonName},</p><p>Your account has been approved. You can now log in and start placing orders.</p>`,
+        },
+      });
+    }
 
     return this.prisma.brand.update({
       where: { id: brandId },

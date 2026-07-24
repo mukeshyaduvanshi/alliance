@@ -20,6 +20,7 @@ import { SystemAdminModule } from './modules/system-admin/system-admin.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     MonitoringModule,
     SystemAdminModule,
     AuditLogModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [
