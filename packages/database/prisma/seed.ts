@@ -52,6 +52,7 @@ async function main() {
     "sla_rule",
     "dashboard",
     "alert",
+    "system_admin",
   ];
   const actions = Object.values(PermissionAction);
 

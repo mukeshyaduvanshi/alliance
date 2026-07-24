@@ -16,6 +16,7 @@ import { PurchaseOrderModule } from './modules/purchase-order/purchase-order.mod
 import { VendorModule } from './modules/vendor/vendor.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
+import { SystemAdminModule } from './modules/system-admin/system-admin.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { MonitoringModule } from './modules/monitoring/monitoring.module';
     VendorModule,
     ScheduleModule.forRoot(),
     MonitoringModule,
+    SystemAdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
