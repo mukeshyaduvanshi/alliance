@@ -8,8 +8,8 @@ export class BrandAuthController {
   constructor(private brandService: BrandService) {}
 
   @Post('login')
-  login(@Body() dto: BrandLoginDto) {
-    return this.brandService.brandLogin(dto);
+  login(@Body() dto: BrandLoginDto, @Req() req: any) {
+    return this.brandService.brandLogin(dto, req.ip, req.headers['user-agent']);
   }
 
   @UseGuards(BrandJwtAuthGuard)

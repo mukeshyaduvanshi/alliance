@@ -11,6 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import { RegisterVendorDto } from './dto/register-vendor.dto';
 import * as bcrypt from 'bcrypt';
 import { VendorLoginDto } from './dto/vendor-login.dto';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class VendorService {
@@ -18,6 +19,7 @@ export class VendorService {
     private prisma: PrismaService,
     private workflowInstanceService: WorkflowInstanceService,
     private jwtService: JwtService,
+    private auditLogService: AuditLogService,
   ) {}
 
   async register(tenantId: string, dto: RegisterVendorDto) {
@@ -188,28 +190,67 @@ export class VendorService {
     });
   }
 
-  async vendorLogin(dto: VendorLoginDto) {
+  async vendorLogin(
+    dto: VendorLoginDto,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
     const vendor = await this.prisma.vendor.findFirst({
       where: { email: dto.email, deletedAt: null },
     });
 
-    if (!vendor || !vendor.passwordHash)
+    if (!vendor || !vendor.passwordHash) {
+      await this.auditLogService.log({
+        actorType: 'VENDOR',
+        action: 'FAILED_LOGIN',
+        module: 'vendor_auth',
+        metadata: { email: dto.email, reason: 'user_not_found' },
+      });
       throw new UnauthorizedException('Invalid credentials');
-    if (vendor.approvalStatus !== 'APPROVED')
+    }
+    if (vendor.approvalStatus !== 'APPROVED') {
       throw new ForbiddenException('Your account is pending approval');
-    if (!vendor.isActive)
+    }
+
+    if (!vendor.isActive) {
       throw new ForbiddenException('Your account has been deactivated');
+    }
 
     const isValid = await bcrypt.compare(dto.password, vendor.passwordHash);
-    if (!isValid) throw new UnauthorizedException('Invalid credentials');
+    if (!isValid) {
+      await this.auditLogService.log({
+        tenantId: vendor.tenantId,
+        actorType: 'VENDOR',
+        actorId: vendor.id,
+        actorName: vendor.vendorName,
+        action: 'FAILED_LOGIN',
+        module: 'vendor_auth',
+        metadata: { email: dto.email, reason: 'wrong_password' },
+        ipAddress,
+        userAgent,
+      });
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
     const payload = {
       sub: vendor.id,
       vendorId: vendor.id,
       tenantId: vendor.tenantId,
+      type: 'vendor',
     };
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+
+    await this.auditLogService.log({
+      tenantId: vendor.tenantId,
+      actorType: 'VENDOR',
+      actorId: vendor.id,
+      actorName: vendor.vendorName,
+      action: 'LOGIN',
+      module: 'vendor_auth',
+      ipAddress,
+      userAgent,
+    });
 
     return {
       accessToken,

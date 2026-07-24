@@ -11,6 +11,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { WorkflowInstanceService } from '../workflow-instance/workflow-instance.service';
 import { RegisterBrandDto } from './dto/register-brand.dto';
 import { BrandLoginDto } from './dto/brand-login.dto';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class BrandService {
@@ -18,6 +19,7 @@ export class BrandService {
     private prisma: PrismaService,
     private workflowInstanceService: WorkflowInstanceService,
     private jwtService: JwtService,
+    private auditLogService: AuditLogService,
   ) {}
 
   async register(tenantId: string, dto: RegisterBrandDto) {
@@ -185,12 +187,20 @@ export class BrandService {
 
   // ===== Brand's own login =====
 
-  async brandLogin(dto: BrandLoginDto) {
+  async brandLogin(dto: BrandLoginDto, ipAddress?: string, userAgent?: string) {
     const brand = await this.prisma.brand.findFirst({
       where: { email: dto.email, deletedAt: null },
     });
 
     if (!brand || !brand.passwordHash) {
+      await this.auditLogService.log({
+        actorType: 'BRAND',
+        action: 'FAILED_LOGIN',
+        module: 'brand_auth',
+        metadata: { email: dto.email, reason: 'user_not_found' },
+        ipAddress,
+        userAgent,
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -204,6 +214,17 @@ export class BrandService {
 
     const isValid = await bcrypt.compare(dto.password, brand.passwordHash);
     if (!isValid) {
+      await this.auditLogService.log({
+        tenantId: brand.tenantId,
+        actorType: 'BRAND',
+        actorId: brand.id,
+        actorName: brand.brandName,
+        action: 'FAILED_LOGIN',
+        module: 'brand_auth',
+        metadata: { email: dto.email, reason: 'wrong_password' },
+        ipAddress,
+        userAgent,
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -215,6 +236,17 @@ export class BrandService {
     };
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+
+    await this.auditLogService.log({
+      tenantId: brand.tenantId,
+      actorType: 'BRAND',
+      actorId: brand.id,
+      actorName: brand.brandName,
+      action: 'LOGIN',
+      module: 'brand_auth',
+      ipAddress,
+      userAgent,
+    });
 
     return {
       accessToken,

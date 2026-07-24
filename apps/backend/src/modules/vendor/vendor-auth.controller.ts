@@ -8,8 +8,12 @@ export class VendorAuthController {
   constructor(private vendorService: VendorService) {}
 
   @Post('login')
-  login(@Body() dto: VendorLoginDto) {
-    return this.vendorService.vendorLogin(dto);
+  login(@Body() dto: VendorLoginDto, @Req() req: any) {
+    return this.vendorService.vendorLogin(
+      dto,
+      req.ip,
+      req.headers['user-agent'],
+    );
   }
 
   @UseGuards(VendorJwtAuthGuard)
