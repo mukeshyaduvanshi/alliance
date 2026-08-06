@@ -5,6 +5,7 @@ import {
   Post,
   Patch,
   Param,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -36,7 +37,17 @@ export class PurchaseOrderController {
 
   @RequirePermission('purchase_order', 'VIEW')
   @Get()
-  findAll(@Req() req: any, @Param('brandId') brandId: string) {
-    return this.poService.findAllForBrand(req.user.tenantId, brandId);
+  findAll(
+    @Req() req: any,
+    @Param('brandId') brandId: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.poService.findAllForBrand(
+      req.user.tenantId,
+      brandId,
+      page,
+      pageSize,
+    );
   }
 }

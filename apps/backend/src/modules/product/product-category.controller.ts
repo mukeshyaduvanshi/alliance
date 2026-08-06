@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
@@ -18,7 +18,15 @@ export class ProductCategoryController {
 
   @RequirePermission('product', 'VIEW')
   @Get()
-  findAll(@Req() req: any) {
-    return this.productService.findAllCategories(req.user.tenantId);
+  findAll(
+    @Req() req: any,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.productService.findAllCategories(
+      req.user.tenantId,
+      page,
+      pageSize,
+    );
   }
 }

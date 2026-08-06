@@ -4,6 +4,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  buildPaginated,
+  getPagination,
+  type Paginated,
+} from '../../common/pagination';
 import { OrderStatus } from '@database/database';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { SubmitArtworkDto } from './dto/submit-artwork.dto';
@@ -124,18 +129,30 @@ export class OrderService {
     status?: string,
     brandId?: string,
     vendorId?: string,
-  ) {
-    return this.prisma.order.findMany({
-      where: {
-        tenantId,
-        deletedAt: null,
-        ...(status ? { status: status as any } : {}),
-        ...(brandId ? { brandId } : {}),
-        ...(vendorId ? { vendorId } : {}),
-      },
-      include: { brand: true, vendor: true, items: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    page?: string | number,
+    pageSize?: string | number,
+  ): Promise<Paginated<Record<string, unknown>>> {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = {
+      tenantId,
+      deletedAt: null,
+      ...(status ? { status: status as any } : {}),
+      ...(brandId ? { brandId } : {}),
+      ...(vendorId ? { vendorId } : {}),
+    };
+
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        include: { brand: true, vendor: true, items: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return buildPaginated(orders, total, p, size);
   }
 
   async findOne(tenantId: string, id: string) {

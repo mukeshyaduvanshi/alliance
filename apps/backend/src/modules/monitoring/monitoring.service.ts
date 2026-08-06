@@ -4,6 +4,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  buildPaginated,
+  getPagination,
+  type Paginated,
+} from '../../common/pagination';
 import { CreateSlaRuleDto } from './dto/create-sla-rule.dto';
 
 @Injectable()
@@ -24,11 +29,25 @@ export class MonitoringService {
     return this.prisma.slaRule.create({ data: { tenantId, ...dto } });
   }
 
-  async listSlaRules(tenantId: string) {
-    return this.prisma.slaRule.findMany({
-      where: { tenantId },
-      orderBy: { createdAt: 'desc' },
-    });
+  async listSlaRules(
+    tenantId: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ): Promise<Paginated<Record<string, unknown>>> {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = { tenantId };
+
+    const [rules, total] = await Promise.all([
+      this.prisma.slaRule.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.slaRule.count({ where }),
+    ]);
+
+    return buildPaginated(rules, total, p, size);
   }
 
   // ===== KAM Assignment =====
@@ -163,11 +182,29 @@ export class MonitoringService {
     });
   }
 
-  async listAlerts(tenantId: string, isResolved?: boolean) {
-    return this.prisma.exceptionAlert.findMany({
-      where: { tenantId, ...(isResolved !== undefined ? { isResolved } : {}) },
-      orderBy: { createdAt: 'desc' },
-    });
+  async listAlerts(
+    tenantId: string,
+    isResolved?: boolean,
+    page?: string | number,
+    pageSize?: string | number,
+  ): Promise<Paginated<Record<string, unknown>>> {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = {
+      tenantId,
+      ...(isResolved !== undefined ? { isResolved } : {}),
+    };
+
+    const [alerts, total] = await Promise.all([
+      this.prisma.exceptionAlert.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.exceptionAlert.count({ where }),
+    ]);
+
+    return buildPaginated(alerts, total, p, size);
   }
 
   async resolveAlert(tenantId: string, alertId: string, userId: string) {

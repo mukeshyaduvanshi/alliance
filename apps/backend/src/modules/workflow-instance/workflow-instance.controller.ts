@@ -28,8 +28,18 @@ export class WorkflowInstanceController {
   }
 
   @Get()
-  findAll(@Req() req: any, @Query('status') status?: string) {
-    return this.workflowInstanceService.findAll(req.user.tenantId, status);
+  findAll(
+    @Req() req: any,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.workflowInstanceService.findAll(
+      req.user.tenantId,
+      status,
+      page,
+      pageSize,
+    );
   }
 
   @Get('pending')

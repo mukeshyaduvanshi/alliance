@@ -48,19 +48,22 @@ Browser testing ke liye: **[testing-guide.md](./testing-guide.md)**
 
 ## Phase F-3: Admin Portal Modules (apps/admin)
 
+> Implementation plan: **[admin-implementation-plan.md](./admin-implementation-plan.md)**
+> Pagination rule: **server-side pagination** (backend `page`/`pageSize` + `Paginated<T>`, page size 20). Form dropdowns (roles/categories) `pageSize=100`. ✅ Complete — Aug 06.
+
 | # | Module | Frontend-PRD Ref | Status |
 |---|--------|------------------|--------|
 | 1 | App shell (layout/sidebar/login) | §4.1 | ✅ Done |
-| 2 | Dashboard | §4.2 | ⬜ Pending (placeholder page only) |
-| 3 | User Management | §4.3 | ⬜ Pending |
-| 4 | Role & Permission (matrix) | §4.4 | ⬜ Pending |
-| 5 | Workflow Config | §4.5 | ⬜ Pending |
-| 6 | Brand Management | §4.6 | ⬜ Pending |
-| 7 | Vendor Management | §4.7 | ⬜ Pending |
-| 8 | Catalog & Pricing | §4.8 | ⬜ Pending |
-| 9 | PO & Orders | §4.9 | ⬜ Pending |
-| 10 | Monitoring (SLA/Alerts) | §4.10 | ⬜ Pending |
-| 11 | Audit Logs | §4.10 | ⬜ Pending |
+| 2 | Dashboard | §4.2 | ✅ Done (KPI + pending approvals + alerts) |
+| 3 | User Management | §4.3 | ✅ Done (list + create) |
+| 4 | Role & Permission (matrix) | §4.4 | ✅ Done (CRUD + clone + status + matrix) |
+| 5 | Workflow Config | §4.5 | ✅ Done (rules + step builder + instances) |
+| 6 | Brand Management | §4.6 | ✅ Done (list + approvals + business model + KAM) |
+| 7 | Vendor Management | §4.7 | ✅ Done (list + approvals) |
+| 8 | Catalog & Pricing | §4.8 | ✅ Done (categories + products CRUD) |
+| 9 | PO & Orders | §4.9 | ✅ Done (PO + orders + assign vendor + status + negotiations) |
+| 10 | Monitoring (SLA/Alerts) | §4.10 | ✅ Done (SLA CRUD + alerts resolve) |
+| 11 | Audit Logs | §4.10 | ✅ Done (filters + server pagination + CSV export) |
 
 ## Phase F-4: Brand Portal (apps/brand)
 | # | Module | Status |
@@ -110,3 +113,6 @@ Browser testing ke liye: **[testing-guide.md](./testing-guide.md)**
 | - | apps/vendor | `tsc --noEmit` | ✅ |
 | - | apps/developer | `tsc --noEmit` | ✅ |
 | - | all workspace | `pnpm build` (turbo) | ✅ 6/6 |
+| Aug 06 | F-3 admin modules | `tsc --noEmit` + `pnpm build` | ✅ |
+| Aug 06 | F-3 all routes | Playwright browser test (17 routes) | ✅ 17/17 PASS |
+| Aug 06 | Pagination fix | Server-side pagination (backend helper + saare endpoints + DataTable) | ✅ |

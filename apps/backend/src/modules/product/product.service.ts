@@ -4,6 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  buildPaginated,
+  getPagination,
+  type Paginated,
+} from '../../common/pagination';
 import { CreateProductDto, RegionRateInput } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -54,12 +59,26 @@ export class ProductService {
     return this.findOne(tenantId, product.id);
   }
 
-  async findAll(tenantId: string) {
-    return this.prisma.product.findMany({
-      where: { tenantId, deletedAt: null },
-      include: { category: true },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(
+    tenantId: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ): Promise<Paginated<Record<string, unknown>>> {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = { tenantId, deletedAt: null };
+
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        include: { category: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    return buildPaginated(products, total, p, size);
   }
 
   async findOne(tenantId: string, id: string) {
@@ -141,10 +160,24 @@ export class ProductService {
     return this.prisma.productCategory.create({ data: { tenantId, ...dto } });
   }
 
-  async findAllCategories(tenantId: string) {
-    return this.prisma.productCategory.findMany({
-      where: { tenantId, deletedAt: null },
-      orderBy: { name: 'asc' },
-    });
+  async findAllCategories(
+    tenantId: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ): Promise<Paginated<Record<string, unknown>>> {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = { tenantId, deletedAt: null };
+
+    const [categories, total] = await Promise.all([
+      this.prisma.productCategory.findMany({
+        where,
+        orderBy: { name: 'asc' },
+        skip,
+        take,
+      }),
+      this.prisma.productCategory.count({ where }),
+    ]);
+
+    return buildPaginated(categories, total, p, size);
   }
 }

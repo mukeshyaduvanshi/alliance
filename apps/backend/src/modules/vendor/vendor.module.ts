@@ -14,12 +14,12 @@ import { VendorRateService } from './vendor-rate.service';
 import { VendorJwtStrategy } from './strategies/vendor-jwt.strategy';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 
-Module({
+@Module({
   imports: [
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      inject: [ConfigModule],
+      inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: { expiresIn: '15m' },
@@ -37,6 +37,5 @@ Module({
     VendorOrderController,
   ],
   providers: [VendorService, VendorRateService, VendorJwtStrategy],
-});
-
+})
 export class VendorModule {}

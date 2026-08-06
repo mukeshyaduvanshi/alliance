@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -30,8 +31,12 @@ export class RoleController {
 
   @RequirePermission('role', 'VIEW')
   @Get()
-  findAll(@Req() req: any) {
-    return this.roleService.findAll(req.user.tenantId);
+  findAll(
+    @Req() req: any,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.roleService.findAll(req.user.tenantId, page, pageSize);
   }
 
   @RequirePermission('role', 'VIEW')

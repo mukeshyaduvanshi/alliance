@@ -1,6 +1,11 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  buildPaginated,
+  getPagination,
+  type Paginated,
+} from '../../common/pagination';
 import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
@@ -33,11 +38,26 @@ export class UserService {
     return safeUser;
   }
 
-  async findAll(tenantId: string) {
-    return this.prisma.user.findMany({
-      where: { tenantId, deletedAt: null },
-      include: { role: true },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(
+    tenantId: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ): Promise<Paginated<Record<string, unknown>>> {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = { tenantId, deletedAt: null };
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        include: { role: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    const safe = users.map(({ passwordHash: _, ...u }) => u);
+    return buildPaginated(safe, total, p, size);
   }
 }

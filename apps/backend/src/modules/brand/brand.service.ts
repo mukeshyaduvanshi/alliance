@@ -8,6 +8,11 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  buildPaginated,
+  getPagination,
+  type Paginated,
+} from '../../common/pagination';
 import { WorkflowInstanceService } from '../workflow-instance/workflow-instance.service';
 import { RegisterBrandDto } from './dto/register-brand.dto';
 import { BrandLoginDto } from './dto/brand-login.dto';
@@ -102,16 +107,32 @@ export class BrandService {
     return brand;
   }
 
-  async findAll(tenantId: string, status?: string) {
-    return this.prisma.brand.findMany({
-      where: {
-        tenantId,
-        deletedAt: null,
-        ...(status ? { approvalStatus: status as any } : {}),
-      },
-      include: { businessProfile: true },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(
+    tenantId: string,
+    status?: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ): Promise<Paginated<Record<string, unknown>>> {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = {
+      tenantId,
+      deletedAt: null,
+      ...(status ? { approvalStatus: status as any } : {}),
+    };
+
+    const [brands, total] = await Promise.all([
+      this.prisma.brand.findMany({
+        where,
+        include: { businessProfile: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.brand.count({ where }),
+    ]);
+
+    const safe = brands.map(({ passwordHash: _, ...b }) => b);
+    return buildPaginated(safe, total, p, size);
   }
 
   async findOne(tenantId: string, id: string) {

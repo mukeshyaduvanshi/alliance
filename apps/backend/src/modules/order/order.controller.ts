@@ -34,12 +34,16 @@ export class OrderController {
     @Query('status') status?: string,
     @Query('brandId') brandId?: string,
     @Query('vendorId') vendorId?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
     return this.orderService.findAll(
       req.user.tenantId,
       status,
       brandId,
       vendorId,
+      page,
+      pageSize,
     );
   }
 

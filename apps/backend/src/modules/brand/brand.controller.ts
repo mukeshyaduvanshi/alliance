@@ -22,8 +22,18 @@ export class BrandController {
 
   @RequirePermission('brand', 'VIEW')
   @Get()
-  findAll(@Req() req: any, @Query('status') status?: string) {
-    return this.brandService.findAll(req.user.tenantId, status);
+  findAll(
+    @Req() req: any,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.brandService.findAll(
+      req.user.tenantId,
+      status,
+      page,
+      pageSize,
+    );
   }
 
   @RequirePermission('brand', 'VIEW')

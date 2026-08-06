@@ -26,6 +26,10 @@ interface DataTableProps<TData, TValue> {
   emptyTitle?: string;
   emptyDescription?: string;
   isLoading?: boolean;
+  pageSize?: number;
+  totalRows?: number;
+  pageIndex?: number;
+  onPageChange?: (page: number) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -34,12 +38,25 @@ export function DataTable<TData, TValue>({
   emptyTitle,
   emptyDescription,
   isLoading,
+  pageSize = 10,
+  totalRows,
+  pageIndex = 0,
+  onPageChange,
 }: DataTableProps<TData, TValue>) {
+  const isServerPaged = onPageChange !== undefined;
+
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getPaginationRowModel: isServerPaged ? undefined : getPaginationRowModel(),
+    ...(isServerPaged
+      ? {
+          manualPagination: true,
+          pageCount: Math.max(1, Math.ceil((totalRows ?? 0) / pageSize)),
+          state: { pagination: { pageIndex, pageSize } },
+        }
+      : {}),
   });
 
   return (
@@ -103,16 +120,42 @@ export function DataTable<TData, TValue>({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
+          onClick={() => {
+            if (isServerPaged) {
+              onPageChange?.(Math.max(1, pageIndex));
+            } else {
+              table.previousPage();
+            }
+          }}
+          disabled={
+            isServerPaged
+              ? pageIndex <= 1
+              : !table.getCanPreviousPage()
+          }
         >
           Previous
         </Button>
+        {!isServerPaged && (
+          <span className="text-muted-foreground text-sm">
+            Page {table.getState().pagination.pageIndex + 1} of{" "}
+            {table.getPageCount()}
+          </span>
+        )}
         <Button
           variant="outline"
           size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
+          onClick={() => {
+            if (isServerPaged) {
+              onPageChange?.(pageIndex + 1);
+            } else {
+              table.nextPage();
+            }
+          }}
+          disabled={
+            isServerPaged
+              ? pageIndex * pageSize >= (totalRows ?? 0)
+              : !table.getCanNextPage()
+          }
         >
           Next
         </Button>

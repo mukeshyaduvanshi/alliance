@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, UseGuards, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  UseGuards,
+  Req,
+  Query,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
@@ -18,7 +26,11 @@ export class UserController {
 
   @RequirePermission('user', 'VIEW')
   @Get()
-  findAll(@Req() req: any) {
-    return this.userService.findAll(req.user.tenantId);
+  findAll(
+    @Req() req: any,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.userService.findAll(req.user.tenantId, page, pageSize);
   }
 }

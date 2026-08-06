@@ -5,6 +5,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  buildPaginated,
+  getPagination,
+  type Paginated,
+} from '../../common/pagination';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { AssignPermissionsDto } from './dto/assign-permissions.dto';
@@ -26,11 +31,25 @@ export class RoleService {
     });
   }
 
-  async findAll(tenantId: string) {
-    return this.prisma.role.findMany({
-      where: { tenantId, deletedAt: null },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(
+    tenantId: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ): Promise<Paginated<Record<string, unknown>>> {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = { tenantId, deletedAt: null };
+
+    const [roles, total] = await Promise.all([
+      this.prisma.role.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.role.count({ where }),
+    ]);
+
+    return buildPaginated(roles, total, p, size);
   }
 
   async findOne(tenantId: string, id: string) {

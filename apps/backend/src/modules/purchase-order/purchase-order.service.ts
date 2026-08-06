@@ -4,6 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  buildPaginated,
+  getPagination,
+  type Paginated,
+} from '../../common/pagination';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 
 @Injectable()
@@ -32,11 +37,49 @@ export class PurchaseOrderService {
     });
   }
 
-  async findAllForBrand(tenantId: string, brandId: string) {
-    return this.prisma.purchaseOrder.findMany({
-      where: { tenantId, brandId },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(
+    tenantId: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ): Promise<Paginated<Record<string, unknown>>> {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = { tenantId };
+
+    const [pos, total] = await Promise.all([
+      this.prisma.purchaseOrder.findMany({
+        where,
+        include: { brand: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.purchaseOrder.count({ where }),
+    ]);
+
+    return buildPaginated(pos, total, p, size);
+  }
+
+  async findAllForBrand(
+    tenantId: string,
+    brandId: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ): Promise<Paginated<Record<string, unknown>>> {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = { tenantId, brandId };
+
+    const [pos, total] = await Promise.all([
+      this.prisma.purchaseOrder.findMany({
+        where,
+        include: { brand: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.purchaseOrder.count({ where }),
+    ]);
+
+    return buildPaginated(pos, total, p, size);
   }
 
   async updateStatus(tenantId: string, id: string, isActive: boolean) {

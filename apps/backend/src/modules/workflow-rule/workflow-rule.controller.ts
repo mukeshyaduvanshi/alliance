@@ -6,6 +6,7 @@ import {
   Patch,
   Delete,
   Param,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -30,8 +31,16 @@ export class WorkflowRuleController {
 
   @RequirePermission('workflow', 'VIEW')
   @Get()
-  findAll(@Req() req: any) {
-    return this.workflowRuleService.findAll(req.user.tenantId);
+  findAll(
+    @Req() req: any,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.workflowRuleService.findAll(
+      req.user.tenantId,
+      page,
+      pageSize,
+    );
   }
 
   @RequirePermission('workflow', 'VIEW')

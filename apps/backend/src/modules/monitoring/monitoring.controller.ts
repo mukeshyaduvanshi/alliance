@@ -29,8 +29,16 @@ export class MonitoringController {
 
   @RequirePermission('sla_rule', 'VIEW')
   @Get('sla-rules')
-  listSlaRules(@Req() req: any) {
-    return this.monitoringService.listSlaRules(req.user.tenantId);
+  listSlaRules(
+    @Req() req: any,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.monitoringService.listSlaRules(
+      req.user.tenantId,
+      page,
+      pageSize,
+    );
   }
 
   @RequirePermission('brand', 'EDIT')
@@ -70,10 +78,20 @@ export class MonitoringController {
 
   @RequirePermission('alert', 'VIEW')
   @Get('alerts')
-  listAlerts(@Req() req: any, @Query('isResolved') isResolved?: string) {
+  listAlerts(
+    @Req() req: any,
+    @Query('isResolved') isResolved?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
     const resolved =
       isResolved === undefined ? undefined : isResolved === 'true';
-    return this.monitoringService.listAlerts(req.user.tenantId, resolved);
+    return this.monitoringService.listAlerts(
+      req.user.tenantId,
+      resolved,
+      page,
+      pageSize,
+    );
   }
 
   @RequirePermission('alert', 'EDIT')

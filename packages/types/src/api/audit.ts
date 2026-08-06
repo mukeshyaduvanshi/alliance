@@ -18,12 +18,19 @@ export interface AuditLogDto {
 
 export interface AuditLogQuery {
   page?: number;
-  perPage?: number;
+  pageSize?: number;
   module?: string;
   action?: AuditAction;
   actorType?: ActorType;
   actorId?: string;
-  from?: string;
-  to?: string;
-  q?: string;
+  fromDate?: string;
+  toDate?: string;
+  search?: string;
+}
+
+export interface AuditLogPage {
+  data: AuditLogDto[];
+  total: number;
+  page: number;
+  pageSize: number;
 }

@@ -22,8 +22,18 @@ export class VendorController {
 
   @RequirePermission('vendor', 'VIEW')
   @Get()
-  findAll(@Req() req: any, @Query('status') status?: string) {
-    return this.vendorService.findAll(req.user.tenantId, status);
+  findAll(
+    @Req() req: any,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.vendorService.findAll(
+      req.user.tenantId,
+      status,
+      page,
+      pageSize,
+    );
   }
 
   @RequirePermission('vendor', 'VIEW')

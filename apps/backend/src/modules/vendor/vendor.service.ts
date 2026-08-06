@@ -6,6 +6,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import {
+  buildPaginated,
+  getPagination,
+  type Paginated,
+} from '../../common/pagination';
 import { WorkflowInstanceService } from '../workflow-instance/workflow-instance.service';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterVendorDto } from './dto/register-vendor.dto';
@@ -104,16 +109,32 @@ export class VendorService {
     return vendor;
   }
 
-  async findAll(tenantId: string, status?: string) {
-    return this.prisma.vendor.findMany({
-      where: {
-        tenantId,
-        deletedAt: null,
-        ...(status ? { approvalStatus: status as any } : {}),
-      },
-      include: { businessProfile: true },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(
+    tenantId: string,
+    status?: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ): Promise<Paginated<Record<string, unknown>>> {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = {
+      tenantId,
+      deletedAt: null,
+      ...(status ? { approvalStatus: status as any } : {}),
+    };
+
+    const [vendors, total] = await Promise.all([
+      this.prisma.vendor.findMany({
+        where,
+        include: { businessProfile: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.vendor.count({ where }),
+    ]);
+
+    const safe = vendors.map(({ passwordHash: _, ...v }) => v);
+    return buildPaginated(safe, total, p, size);
   }
 
   async findOne(tenantId: string, id: string) {

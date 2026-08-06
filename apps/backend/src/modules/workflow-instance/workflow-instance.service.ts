@@ -5,6 +5,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  buildPaginated,
+  getPagination,
+  type Paginated,
+} from '../../common/pagination';
 import { StartWorkflowDto } from './dto/start-workflow.dto';
 
 @Injectable()
@@ -50,12 +55,30 @@ export class WorkflowInstanceService {
     });
   }
 
-  async findAll(tenantId: string, status?: string) {
-    return this.prisma.workflowInstance.findMany({
-      where: { tenantId, ...(status ? { status: status as any } : {}) },
-      include: { workflowRule: true, actions: true },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(
+    tenantId: string,
+    status?: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ): Promise<Paginated<Record<string, unknown>>> {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = {
+      tenantId,
+      ...(status ? { status: status as any } : {}),
+    };
+
+    const [instances, total] = await Promise.all([
+      this.prisma.workflowInstance.findMany({
+        where,
+        include: { workflowRule: true, actions: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.workflowInstance.count({ where }),
+    ]);
+
+    return buildPaginated(instances, total, p, size);
   }
 
   async findOne(tenantId: string, id: string) {

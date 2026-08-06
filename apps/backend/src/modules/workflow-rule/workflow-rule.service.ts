@@ -4,6 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  buildPaginated,
+  getPagination,
+  type Paginated,
+} from '../../common/pagination';
 import { CreateWorkflowRuleDto } from './dto/create-workflow-rule.dto';
 import { UpdateWorkflowRuleDto } from './dto/update-workflow-rule.dto';
 import { CreateWorkflowStepDto } from './dto/create-workflow-step.dto';
@@ -26,17 +31,31 @@ export class WorkflowRuleService {
     });
   }
 
-  async findAll(tenantId: string) {
-    return this.prisma.workflowRule.findMany({
-      where: { tenantId, deletedAt: null },
-      include: {
-        steps: {
-          orderBy: { stepOrder: 'asc' },
-          include: { approverRole: true },
+  async findAll(
+    tenantId: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ): Promise<Paginated<Record<string, unknown>>> {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = { tenantId, deletedAt: null };
+
+    const [rules, total] = await Promise.all([
+      this.prisma.workflowRule.findMany({
+        where,
+        include: {
+          steps: {
+            orderBy: { stepOrder: 'asc' },
+            include: { approverRole: true },
+          },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.workflowRule.count({ where }),
+    ]);
+
+    return buildPaginated(rules, total, p, size);
   }
 
   async findOne(tenantId: string, id: string) {

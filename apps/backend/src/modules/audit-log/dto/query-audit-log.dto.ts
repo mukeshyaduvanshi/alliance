@@ -29,4 +29,12 @@ export class QueryAuditLogDto {
   @IsOptional()
   @IsString()
   search?: string; // free-text search on actorName/module
+
+  @IsOptional()
+  @IsString()
+  page?: string;
+
+  @IsOptional()
+  @IsString()
+  pageSize?: string;
 }

@@ -11,6 +11,7 @@ export * from "./api/audit";
 export * from "./api/notification";
 export * from "./api/monitoring";
 export * from "./api/system";
+export * from "./api/product";
 
 export type PortalType = "admin" | "manager" | "brand" | "vendor" | "developer";
 

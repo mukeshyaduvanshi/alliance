@@ -12,6 +12,11 @@ export interface RoleDto {
   createdAt: string;
   updatedAt: string;
   parentRole?: { id: string; name: string };
+  rolePermissions?: {
+    id: string;
+    permissionId: string;
+    permission: PermissionDto;
+  }[];
 }
 
 export interface CreateRoleDto {
