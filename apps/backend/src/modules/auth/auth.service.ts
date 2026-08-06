@@ -53,8 +53,11 @@ export class AuthService {
 
     const payload = {
       sub: user.id,
+      type: 'internal',
       tenantId: user.tenantId,
       roleId: user.roleId,
+      role: user.role.name,
+      email: user.email,
       isSuperAdmin: user.isSuperAdmin,
     };
 
@@ -87,7 +90,10 @@ export class AuthService {
         id: user.id,
         fullName: user.fullName,
         email: user.email,
-        role: user.role.name,
+        roleId: user.roleId,
+        roleName: user.role.name,
+        tenantId: user.tenantId,
+        isSuperAdmin: user.isSuperAdmin,
       },
     };
   }

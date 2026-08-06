@@ -1,7 +1,9 @@
 "use client";
 
 import { LoginForm as UiLoginForm } from "@cj/ui";
-import { saveSession, type AuthSession } from "@cj/utils";
+import type { AuthSession } from "@cj/utils";
+
+import { saveSession } from "@/lib/session";
 
 const LOGIN_ENDPOINT = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1"}/brand-auth/login`;
 

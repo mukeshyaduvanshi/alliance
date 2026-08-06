@@ -250,6 +250,8 @@ export class BrandService {
       brandId: brand.id,
       tenantId: brand.tenantId,
       type: 'brand',
+      role: 'BRAND',
+      email: brand.email,
     };
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
@@ -268,7 +270,22 @@ export class BrandService {
     return {
       accessToken,
       refreshToken,
-      brand: { id: brand.id, brandName: brand.brandName, email: brand.email },
+      brand: {
+        id: brand.id,
+        brandName: brand.brandName,
+        email: brand.email,
+        tenantId: brand.tenantId,
+      },
+      user: {
+        id: brand.id,
+        fullName: brand.brandName,
+        email: brand.email,
+        roleId: null,
+        roleName: 'BRAND',
+        tenantId: brand.tenantId,
+        isSuperAdmin: false,
+        brandId: brand.id,
+      },
     };
   }
 

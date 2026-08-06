@@ -6,6 +6,12 @@
 ## 📖 Testing Guide
 Browser testing ke liye: **[testing-guide.md](./testing-guide.md)**
 
+## 🔧 Auth & Session (Fixed)
+- **Portal-isolated sessions:** har portal ka apna session key (`cj:admin:session`, `cj:brand:session`, etc.) — ek portal ka login dusre portal par kaam nahi karta
+- **JWT payload:** ab `role` (name), `roleName`, `type` (`internal`/`brand`/`vendor`) bhi carry karta hai
+- **Backend login response:** consistent `user` object (roleId, roleName, tenantId, brandId/vendorId)
+- **Proxy guards:** har app apne portal ke cookie ko hi check karta hai
+
 ## Status Legend
 - ✅ **Done** — built + tested (typecheck/build pass)
 - 🔨 **In Progress** — currently building

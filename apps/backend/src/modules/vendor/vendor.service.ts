@@ -237,6 +237,8 @@ export class VendorService {
       vendorId: vendor.id,
       tenantId: vendor.tenantId,
       type: 'vendor',
+      role: 'VENDOR',
+      email: vendor.email,
     };
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
@@ -259,6 +261,17 @@ export class VendorService {
         id: vendor.id,
         vendorName: vendor.vendorName,
         email: vendor.email,
+        tenantId: vendor.tenantId,
+      },
+      user: {
+        id: vendor.id,
+        fullName: vendor.vendorName,
+        email: vendor.email,
+        roleId: null,
+        roleName: 'VENDOR',
+        tenantId: vendor.tenantId,
+        isSuperAdmin: false,
+        vendorId: vendor.id,
       },
     };
   }

@@ -17,6 +17,11 @@ export class BrandJwtStrategy extends PassportStrategy(Strategy, 'brand-jwt') {
     if (payload.type !== 'brand') {
       throw new UnauthorizedException('Invalid token type');
     }
-    return { brandId: payload.brandId, tenantId: payload.tenantId };
+    return {
+      brandId: payload.brandId,
+      tenantId: payload.tenantId,
+      role: payload.role,
+      email: payload.email,
+    };
   }
 }

@@ -9,7 +9,7 @@ export function proxy(request: NextRequest) {
     (p) => pathname === p || pathname.startsWith(`${p}/`)
   );
 
-  const session = request.cookies.get("cj:session");
+  const session = request.cookies.get("cj_manager_session");
 
   if (!isPublic && !session) {
     const loginUrl = new URL("/login", request.url);

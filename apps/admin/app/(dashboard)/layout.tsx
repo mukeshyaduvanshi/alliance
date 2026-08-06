@@ -3,8 +3,8 @@
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AppShell, type NavItem } from "@cj/ui";
-import { clearSession } from "@cj/utils";
 
+import { clearSession } from "@/lib/session";
 import { adminNavItems } from "@/lib/navigation";
 
 function toNavItems(items: typeof adminNavItems): NavItem[] {

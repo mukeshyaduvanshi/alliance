@@ -4,30 +4,46 @@ export interface AuthSession {
     id: string;
     fullName: string;
     email: string;
-    roleId?: string;
-    roleName?: string;
-    tenantId?: string;
+    roleId?: string | null;
+    roleName?: string | null;
+    tenantId?: string | null;
     isSuperAdmin?: boolean;
-    brandId?: string;
-    vendorId?: string;
+    brandId?: string | null;
+    vendorId?: string | null;
   };
   permissions?: { module: string; action: string }[];
 }
 
-const SESSION_KEY = "cj:session";
-const SESSION_COOKIE = "cj:session";
+const DEFAULT_SESSION_KEY = "cj:session";
 
-export function saveSession(session: AuthSession): void {
+export function buildSessionKey(portal: string): string {
+  return `cj:${portal}:session`;
+}
+
+export function buildSessionCookie(portal: string): string {
+  return `cj_${portal}_session`;
+}
+
+function localStorageKey(portal?: string): string {
+  return portal ? buildSessionKey(portal) : DEFAULT_SESSION_KEY;
+}
+
+function cookieName(portal?: string): string {
+  return portal ? buildSessionCookie(portal) : DEFAULT_SESSION_KEY.replaceAll(":", "_");
+}
+
+export function saveSession(session: AuthSession, portal?: string): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(
+  const key = localStorageKey(portal);
+  window.localStorage.setItem(key, JSON.stringify(session));
+  document.cookie = `${cookieName(portal)}=${encodeURIComponent(
     JSON.stringify(session)
   )}; path=/; SameSite=Lax`;
 }
 
-export function getSession(): AuthSession | null {
+export function getSession(portal?: string): AuthSession | null {
   if (typeof window === "undefined") return null;
-  const raw = window.localStorage.getItem(SESSION_KEY);
+  const raw = window.localStorage.getItem(localStorageKey(portal));
   if (!raw) return null;
   try {
     return JSON.parse(raw) as AuthSession;
@@ -36,22 +52,22 @@ export function getSession(): AuthSession | null {
   }
 }
 
-export function clearSession(): void {
+export function clearSession(portal?: string): void {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(SESSION_KEY);
-  document.cookie = `${SESSION_COOKIE}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  window.localStorage.removeItem(localStorageKey(portal));
+  document.cookie = `${cookieName(portal)}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 }
 
-export function isAuthenticated(): boolean {
-  return getSession() !== null;
+export function isAuthenticated(portal?: string): boolean {
+  return getSession(portal) !== null;
 }
 
-export function getAccessToken(): string | null {
-  return getSession()?.accessToken ?? null;
+export function getAccessToken(portal?: string): string | null {
+  return getSession(portal)?.accessToken ?? null;
 }
 
-export function getTenantId(): string | null {
-  return getSession()?.user.tenantId ?? null;
+export function getTenantId(portal?: string): string | null {
+  return getSession(portal)?.user.tenantId ?? null;
 }
 
 export function hasPermission(

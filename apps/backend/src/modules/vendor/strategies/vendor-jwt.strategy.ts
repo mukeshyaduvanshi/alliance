@@ -19,6 +19,11 @@ export class VendorJwtStrategy extends PassportStrategy(
   async validate(payload: any) {
     if (payload.type !== 'vendor')
       throw new UnauthorizedException('Invalid token type');
-    return { vendorId: payload.vendorId, tenantId: payload.tenantId };
+    return {
+      vendorId: payload.vendorId,
+      tenantId: payload.tenantId,
+      role: payload.role,
+      email: payload.email,
+    };
   }
 }
