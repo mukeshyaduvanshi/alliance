@@ -51,13 +51,15 @@ export interface OrderDto {
 }
 
 export interface CreateOrderDto {
-  brandId: string;
+  brandId?: string;
   poId?: string;
   artworkSubmissionType: ArtworkSubmissionType;
   siteLocation: string;
+  artworkFileUrl: string;
+  artworkFileName: string;
   items: {
     productId: string;
-    region: Region;
+    region?: Region;
     quantity: number;
   }[];
 }

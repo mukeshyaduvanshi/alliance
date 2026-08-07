@@ -1,7 +1,16 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { BrandJwtAuthGuard } from './guards/brand-jwt-auth.guard';
 import { BrandService } from './brand.service';
 import { BrandLoginDto } from './dto/brand-login.dto';
+import { UpdateBrandProfileDto } from './dto/update-brand-profile.dto';
 
 @Controller('brand-auth')
 export class BrandAuthController {
@@ -16,5 +25,11 @@ export class BrandAuthController {
   @Get('me')
   me(@Req() req: any) {
     return this.brandService.getBrandProfile(req.user.brandId);
+  }
+
+  @UseGuards(BrandJwtAuthGuard)
+  @Patch('me')
+  updateMe(@Req() req: any, @Body() dto: UpdateBrandProfileDto) {
+    return this.brandService.updateProfile(req.user.brandId, dto);
   }
 }

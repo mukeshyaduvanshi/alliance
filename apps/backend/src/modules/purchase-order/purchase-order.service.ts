@@ -82,6 +82,15 @@ export class PurchaseOrderService {
     return buildPaginated(pos, total, p, size);
   }
 
+  async findOneForBrand(tenantId: string, brandId: string, id: string) {
+    const po = await this.prisma.purchaseOrder.findFirst({
+      where: { id, tenantId, brandId },
+      include: { brand: true },
+    });
+    if (!po) throw new NotFoundException('Purchase Order not found');
+    return po;
+  }
+
   async updateStatus(tenantId: string, id: string, isActive: boolean) {
     const po = await this.prisma.purchaseOrder.findFirst({
       where: { id, tenantId },

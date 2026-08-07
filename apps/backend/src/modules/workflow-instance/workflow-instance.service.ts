@@ -28,7 +28,7 @@ export class WorkflowInstanceService {
       );
     }
 
-    if (rule.autoApprove || rule.steps.length === 0) {
+    if (rule.autoApprove) {
       return this.prisma.workflowInstance.create({
         data: {
           tenantId,
@@ -50,7 +50,7 @@ export class WorkflowInstanceService {
         entityId: dto.entityId,
         initiatedById: initiatedById ?? null,
         status: 'PENDING',
-        currentStepOrder: 1,
+        currentStepOrder: rule.steps.length > 0 ? 1 : 0,
       },
     });
   }
@@ -131,25 +131,28 @@ export class WorkflowInstanceService {
       instance.currentStepOrder,
     );
 
-    if (!currentStep) throw new BadRequestException('Invalid workflow state');
-    if (currentStep.approverRoleId !== userRoleId) {
-      throw new ForbiddenException('You are not the approver for this step');
+    if (currentStep) {
+      if (currentStep.approverRoleId !== userRoleId) {
+        throw new ForbiddenException('You are not the approver for this step');
+      }
+
+      await this.prisma.approvalAction.create({
+        data: {
+          workflowInstanceId: instance.id,
+          workflowStepId: currentStep.id,
+          actionByUserId: userId,
+          decision: 'APPROVED',
+          remarks,
+        },
+      });
     }
 
-    await this.prisma.approvalAction.create({
-      data: {
-        workflowInstanceId: instance.id,
-        workflowStepId: currentStep.id,
-        actionByUserId: userId,
-        decision: 'APPROVED',
-        remarks,
-      },
-    });
-
-    const nextStep = await this.getCurrentStep(
-      instance.workflowRuleId,
-      instance.currentStepOrder + 1,
-    );
+    const nextStep = currentStep
+      ? await this.getCurrentStep(
+          instance.workflowRuleId,
+          instance.currentStepOrder + 1,
+        )
+      : null;
 
     return this.prisma.workflowInstance.update({
       where: { id: instance.id },
@@ -172,20 +175,21 @@ export class WorkflowInstanceService {
       instance.currentStepOrder,
     );
 
-    if (!currentStep) throw new BadRequestException('Invalid workflow state');
-    if (currentStep.approverRoleId !== userRoleId) {
-      throw new ForbiddenException('You are not the approver for this step');
-    }
+    if (currentStep) {
+      if (currentStep.approverRoleId !== userRoleId) {
+        throw new ForbiddenException('You are not the approver for this step');
+      }
 
-    await this.prisma.approvalAction.create({
-      data: {
-        workflowInstanceId: instance.id,
-        workflowStepId: currentStep.id,
-        actionByUserId: userId,
-        decision: 'REJECTED',
-        remarks,
-      },
-    });
+      await this.prisma.approvalAction.create({
+        data: {
+          workflowInstanceId: instance.id,
+          workflowStepId: currentStep.id,
+          actionByUserId: userId,
+          decision: 'REJECTED',
+          remarks,
+        },
+      });
+    }
 
     return this.prisma.workflowInstance.update({
       where: { id: instance.id },

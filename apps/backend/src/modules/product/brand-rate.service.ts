@@ -1,5 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ProductStatus } from '@database/database';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  buildPaginated,
+  getPagination,
+  type Paginated,
+} from '../../common/pagination';
 import { AssignRateDto } from './dto/assign-rate.dto';
 
 @Injectable()
@@ -74,17 +80,29 @@ export class BrandRateService {
 
   // ===== Brand side =====
 
-  async findProductsForBrand(brandId: string) {
-    const rates = await this.prisma.brandProductRate.findMany({
-      where: {
-        brandId,
-        isActive: true,
-        product: { deletedAt: null, status: 'ACTIVE' },
-      },
-      include: { product: { include: { category: true, regionRates: true } } },
-    });
+  async findProductsForBrand(
+    brandId: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ): Promise<Paginated<Record<string, unknown>>> {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = {
+      brandId,
+      isActive: true,
+      product: { deletedAt: null, status: ProductStatus.ACTIVE },
+    };
 
-    return rates.map((r) => {
+    const [rates, total] = await Promise.all([
+      this.prisma.brandProductRate.findMany({
+        where,
+        include: { product: { include: { category: true, regionRates: true } } },
+        skip,
+        take,
+      }),
+      this.prisma.brandProductRate.count({ where }),
+    ]);
+
+    const data = rates.map((r) => {
       const effectiveRate = r.isCustomRate
         ? r.customRate
         : r.product.regionRates.find((rr) => rr.region === r.region)?.rate;
@@ -96,6 +114,8 @@ export class BrandRateService {
         rate: effectiveRate,
       };
     });
+
+    return buildPaginated(data, total, p, size);
   }
 
   async findOneForBrand(brandId: string, productId: string) {

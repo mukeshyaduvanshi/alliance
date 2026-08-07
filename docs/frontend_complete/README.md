@@ -69,10 +69,16 @@ Browser testing ke liye: **[testing-guide.md](./testing-guide.md)**
 | # | Module | Status |
 |---|--------|--------|
 | 1 | Auth (login + register) | ✅ Done |
-| 2 | Dashboard | ⬜ Pending (placeholder only) |
-| 3 | Products & Pricing | ⬜ Pending |
-| 4 | Orders + Artwork Approval | ⬜ Pending |
-| 5 | POs & Invoices | ⬜ Pending |
+| 2 | Dashboard | ✅ Done (KPIs + recent orders) |
+| 3 | Products & Pricing (rate card) | ✅ Done (server-side paginated) |
+| 4 | Orders + Artwork Approval | ✅ Done (place order, detail, approve/reject, cancel) |
+| 5 | POs & Invoices | ✅ Done (budget/consumed + invoice full module) |
+| 6 | Notifications | ✅ Done (read/unread + mark all) |
+| 7 | Profile (self-edit) | ✅ Done (user-added scope) |
+| 8 | Reports | ✅ Done (spend + CSV export) |
+| — | KAM Chat | ⛔ Out of scope (user decision) |
+
+> **F-4 complete (Aug 07):** backend brand pagination (#1–#3), PO endpoint (#4), Invoice full module (#5), `PATCH /brand-auth/me` (#7) — sab done + verified. Playwright: 10/10 routes PASS, E2E ALL PASS, place-order form PASS. Full log in `brand-implementation-plan.md` §9.
 
 ## Phase F-5: Vendor Portal (apps/vendor)
 | # | Module | Status |

@@ -72,6 +72,27 @@ export interface BrandBusinessModelConfigDto {
   effectiveFrom: string;
 }
 
+export interface UpdateBrandBusinessProfileDto {
+  legalName?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+}
+
+export interface UpdateBrandProfileDto {
+  brandName?: string;
+  contactPersonName?: string;
+  phone?: string;
+  businessProfile?: UpdateBrandBusinessProfileDto;
+}
+
+export interface BrandLoginResponse {
+  accessToken: string;
+  brand: BrandDto;
+}
+
 export interface BrandRateDto {
   id: string;
   brandId: string;

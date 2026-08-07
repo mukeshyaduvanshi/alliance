@@ -106,6 +106,13 @@ export enum NegotiationStatus {
   REJECTED = "REJECTED",
 }
 
+export enum InvoiceStatus {
+  DRAFT = "DRAFT",
+  ISSUED = "ISSUED",
+  PAID = "PAID",
+  OVERDUE = "OVERDUE",
+}
+
 export enum AlertType {
   SLA_BREACH = "SLA_BREACH",
   NEGOTIATION_STUCK = "NEGOTIATION_STUCK",

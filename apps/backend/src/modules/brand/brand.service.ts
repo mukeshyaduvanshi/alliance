@@ -16,6 +16,7 @@ import {
 import { WorkflowInstanceService } from '../workflow-instance/workflow-instance.service';
 import { RegisterBrandDto } from './dto/register-brand.dto';
 import { BrandLoginDto } from './dto/brand-login.dto';
+import { UpdateBrandProfileDto } from './dto/update-brand-profile.dto';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { NotificationService } from '../notification/notification.service';
 
@@ -30,15 +31,6 @@ export class BrandService {
   ) {}
 
   async register(tenantId: string, dto: RegisterBrandDto) {
-    const existingPan = await this.prisma.businessProfile.findUnique({
-      where: { panNumber: dto.panNumber },
-    });
-    if (existingPan) {
-      throw new ConflictException(
-        'A business is already registered with this PAN',
-      );
-    }
-
     const existingEmail = await this.prisma.brand.findFirst({
       where: { tenantId, email: dto.email, deletedAt: null },
     });
@@ -46,24 +38,71 @@ export class BrandService {
       throw new ConflictException('A brand with this email already exists');
     }
 
-    const businessProfile = await this.prisma.businessProfile.create({
-      data: {
-        legalName: dto.legalName,
-        businessType: dto.businessType,
-        panNumber: dto.panNumber,
-        gstNumber: dto.gstNumber,
-        msmeNumber: dto.msmeNumber,
-        cinNumber: dto.cinNumber,
-        panDocUrl: dto.panDocUrl,
-        gstDocUrl: dto.gstDocUrl,
-        msmeDocUrl: dto.msmeDocUrl,
-        addressLine1: dto.addressLine1,
-        addressLine2: dto.addressLine2,
-        city: dto.city,
-        state: dto.state,
-        pincode: dto.pincode,
-      },
-    });
+    // Empty optional strings ko null normalize (unique constraint collision se bachne ke liye)
+    const panNumber = dto.panNumber?.trim() || null;
+    const gstNumber = dto.gstNumber?.trim() || null;
+    const msmeNumber = dto.msmeNumber?.trim() || null;
+    const cinNumber = dto.cinNumber?.trim() || null;
+
+    // Agar PAN diya hai to existing profile dhundo:
+    // - active brand linked hai → conflict
+    // - orphan/deleted brand → profile reuse (update) karo
+    let businessProfile: { id: string };
+    const existingProfile = panNumber
+      ? await this.prisma.businessProfile.findUnique({
+          where: { panNumber },
+          include: {
+            brand: { include: { tenant: true } },
+            vendors: { select: { id: true } },
+          },
+        })
+      : null;
+
+    if (existingProfile) {
+      const activeBrand = existingProfile.brand?.deletedAt === null;
+      if (activeBrand) {
+        throw new ConflictException(
+          'A business is already registered with this PAN',
+        );
+      }
+      businessProfile = await this.prisma.businessProfile.update({
+        where: { id: existingProfile.id },
+        data: {
+          legalName: dto.legalName,
+          businessType: dto.businessType,
+          gstNumber,
+          msmeNumber,
+          cinNumber,
+          panDocUrl: dto.panDocUrl ?? null,
+          gstDocUrl: dto.gstDocUrl ?? null,
+          msmeDocUrl: dto.msmeDocUrl ?? null,
+          addressLine1: dto.addressLine1,
+          addressLine2: dto.addressLine2 ?? null,
+          city: dto.city,
+          state: dto.state,
+          pincode: dto.pincode,
+        },
+      });
+    } else {
+      businessProfile = await this.prisma.businessProfile.create({
+        data: {
+          legalName: dto.legalName,
+          businessType: dto.businessType,
+          panNumber,
+          gstNumber,
+          msmeNumber,
+          cinNumber,
+          panDocUrl: dto.panDocUrl ?? null,
+          gstDocUrl: dto.gstDocUrl ?? null,
+          msmeDocUrl: dto.msmeDocUrl ?? null,
+          addressLine1: dto.addressLine1,
+          addressLine2: dto.addressLine2 ?? null,
+          city: dto.city,
+          state: dto.state,
+          pincode: dto.pincode,
+        },
+      });
+    }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
@@ -113,7 +152,12 @@ export class BrandService {
     page?: string | number,
     pageSize?: string | number,
   ): Promise<Paginated<Record<string, unknown>>> {
-    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const {
+      skip,
+      take,
+      page: p,
+      pageSize: size,
+    } = getPagination(page, pageSize);
     const where = {
       tenantId,
       deletedAt: null,
@@ -316,5 +360,53 @@ export class BrandService {
         .tenantId,
       brandId,
     );
+  }
+
+  async updateProfile(brandId: string, dto: UpdateBrandProfileDto) {
+    const brand = await this.prisma.brand.findUnique({
+      where: { id: brandId },
+    });
+    if (!brand) throw new NotFoundException('Brand not found');
+
+    const { brandName, contactPersonName, phone, businessProfile } = dto;
+
+    const updatedBrand = await this.prisma.brand.update({
+      where: { id: brandId },
+      data: {
+        ...(brandName !== undefined ? { brandName } : {}),
+        ...(contactPersonName !== undefined ? { contactPersonName } : {}),
+        ...(phone !== undefined ? { phone } : {}),
+        ...(businessProfile
+          ? {
+              businessProfile: {
+                update: {
+                  ...(businessProfile.legalName !== undefined
+                    ? { legalName: businessProfile.legalName }
+                    : {}),
+                  ...(businessProfile.addressLine1 !== undefined
+                    ? { addressLine1: businessProfile.addressLine1 }
+                    : {}),
+                  ...(businessProfile.addressLine2 !== undefined
+                    ? { addressLine2: businessProfile.addressLine2 }
+                    : {}),
+                  ...(businessProfile.city !== undefined
+                    ? { city: businessProfile.city }
+                    : {}),
+                  ...(businessProfile.state !== undefined
+                    ? { state: businessProfile.state }
+                    : {}),
+                  ...(businessProfile.pincode !== undefined
+                    ? { pincode: businessProfile.pincode }
+                    : {}),
+                },
+              },
+            }
+          : {}),
+      },
+      include: { businessProfile: true },
+    });
+
+    const { passwordHash: _, ...safeBrand } = updatedBrand;
+    return safeBrand;
   }
 }

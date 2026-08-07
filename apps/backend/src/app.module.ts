@@ -22,6 +22,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { BusinessModelModule } from './modules/business-model/business-model.module';
+import { InvoiceModule } from './modules/invoice/invoice.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { BusinessModelModule } from './modules/business-model/business-model.mod
     AuditLogModule,
     NotificationModule,
     BusinessModelModule,
+    InvoiceModule,
   ],
   controllers: [AppController],
   providers: [

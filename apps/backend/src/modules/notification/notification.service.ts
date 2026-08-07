@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { NotificationRecipientType } from '@database/database';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import {
+  buildPaginated,
+  getPagination,
+  type Paginated,
+} from '../../common/pagination';
 
 export interface NotifyInput {
   tenantId: string;
@@ -68,17 +73,28 @@ export class NotificationService {
     recipientType: NotificationRecipientType,
     recipientId: string,
     isRead?: boolean,
-  ) {
-    return this.prisma.notification.findMany({
-      where: {
-        tenantId,
-        recipientType,
-        recipientId,
-        ...(isRead !== undefined ? { isRead } : {}),
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    });
+    page?: string | number,
+    pageSize?: string | number,
+  ): Promise<Paginated<Record<string, unknown>>> {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize, 20);
+    const where = {
+      tenantId,
+      recipientType,
+      recipientId,
+      ...(isRead !== undefined ? { isRead } : {}),
+    };
+
+    const [notifications, total] = await Promise.all([
+      this.prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.notification.count({ where }),
+    ]);
+
+    return buildPaginated(notifications, total, p, size);
   }
 
   async markAsRead(

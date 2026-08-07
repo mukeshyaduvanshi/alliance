@@ -170,16 +170,31 @@ export class OrderService {
     return order;
   }
 
-  async findAllForBrand(brandId: string, status?: string) {
-    return this.prisma.order.findMany({
-      where: {
-        brandId,
-        deletedAt: null,
-        ...(status ? { status: status as any } : {}),
-      },
-      include: { items: true, vendor: true },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAllForBrand(
+    brandId: string,
+    status?: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ): Promise<Paginated<Record<string, unknown>>> {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = {
+      brandId,
+      deletedAt: null,
+      ...(status ? { status: status as any } : {}),
+    };
+
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        include: { items: true, vendor: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return buildPaginated(orders, total, p, size);
   }
 
   async findOneForBrand(brandId: string, id: string) {

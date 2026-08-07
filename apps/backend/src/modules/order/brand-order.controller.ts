@@ -27,8 +27,18 @@ export class BrandOrderController {
   }
 
   @Get()
-  findAll(@Req() req: any, @Query('status') status?: string) {
-    return this.orderService.findAllForBrand(req.user.brandId, status);
+  findAll(
+    @Req() req: any,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.orderService.findAllForBrand(
+      req.user.brandId,
+      status,
+      page,
+      pageSize,
+    );
   }
 
   @Get(':id')

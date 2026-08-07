@@ -96,8 +96,113 @@ async function main() {
     },
   });
 
+  // Brand account for brand portal testing
+  const brandPasswordHash = await bcrypt.hash("Brand@123", 10);
+  const existingProfile = await prisma.businessProfile.findUnique({
+    where: { panNumber: "ABCDE1234F" },
+  });
+  const brandProfile =
+    existingProfile ??
+    (await prisma.businessProfile.create({
+      data: {
+        legalName: "Sharma Prints Pvt Ltd",
+        businessType: "PRIVATE_LIMITED",
+        panNumber: "ABCDE1234F",
+        gstNumber: "GSTIN123456789",
+        addressLine1: "123 Industrial Area",
+        city: "Mumbai",
+        state: "Maharashtra",
+        pincode: "400001",
+        isVerified: true,
+      },
+    }));
+
+  const existingBrand = await prisma.brand.findFirst({
+    where: { brandName: "Sharma Prints" },
+  });
+  const brand =
+    existingBrand ??
+    (await prisma.brand.create({
+      data: {
+        id: "brand-seed-1",
+        tenantId: tenant.id,
+        businessProfileId: brandProfile.id,
+        brandName: "Sharma Prints",
+        contactPersonName: "Rahul Sharma",
+        email: "brand@sharmaprints.com",
+        phone: "9876543210",
+        passwordHash: brandPasswordHash,
+        approvalStatus: "APPROVED",
+        isActive: true,
+      },
+    }));
+
+  // Product category + sample products with region rates
+  const category = await prisma.productCategory.upsert({
+    where: { tenantId_name: { tenantId: tenant.id, name: "Banners" } },
+    update: {},
+    create: { tenantId: tenant.id, name: "Banners" },
+  });
+
+  const adminUser = await prisma.user.findFirst({
+    where: { email: "admin@colorjet.com" },
+  });
+
+  const products = [
+    { name: "Vinyl Banner", sku: "VB-001", unit: "sq.ft", rate: 45 },
+    { name: "Flex Banner", sku: "FB-001", unit: "sq.ft", rate: 30 },
+    { name: "Standee", sku: "ST-001", unit: "piece", rate: 250 },
+  ];
+
+  for (const p of products) {
+    const product = await prisma.product.upsert({
+      where: { tenantId_sku: { tenantId: tenant.id, sku: p.sku } },
+      update: {},
+      create: {
+        tenantId: tenant.id,
+        categoryId: category.id,
+        name: p.name,
+        sku: p.sku,
+        unit: p.unit,
+      },
+    });
+    await prisma.productRegionRate.upsert({
+      where: {
+        productId_region: { productId: product.id, region: "PAN_INDIA" },
+      },
+      update: { rate: p.rate },
+      create: { productId: product.id, region: "PAN_INDIA", rate: p.rate },
+    });
+    await prisma.brandProductRate.upsert({
+      where: { brandId_productId: { brandId: brand.id, productId: product.id } },
+      update: {},
+      create: {
+        tenantId: tenant.id,
+        brandId: brand.id,
+        productId: product.id,
+        region: "PAN_INDIA",
+        assignedById: adminUser!.id,
+      },
+    });
+  }
+
+  // Sample Purchase Order for the brand
+  await prisma.purchaseOrder.upsert({
+    where: {
+      tenantId_poNumber: { tenantId: tenant.id, poNumber: "PO-COLORJET-2026-001" },
+    },
+    update: {},
+    create: {
+      tenantId: tenant.id,
+      brandId: brand.id,
+      poNumber: "PO-COLORJET-2026-001",
+      totalBudget: 500000,
+      createdById: adminUser!.id,
+    },
+  });
+
   console.log(
-    "Seed completed ✅ — Super Admin: admin@colorjet.com / Admin@123",
+    "Seed completed ✅ — Super Admin: admin@colorjet.com / Admin@123, Brand: rahul@sharmaprints.com / Brand@123",
   );
 }
 

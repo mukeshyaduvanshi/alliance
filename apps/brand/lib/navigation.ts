@@ -5,6 +5,8 @@ import {
   FileText,
   Receipt,
   Bell,
+  BarChart3,
+  UserRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -43,4 +45,6 @@ export const brandNavItems: NavItem[] = [
     icon: Receipt,
   },
   { title: "Notifications", href: "/notifications", icon: Bell },
+  { title: "Reports", href: "/reports", icon: BarChart3 },
+  { title: "Profile", href: "/profile", icon: UserRound },
 ];

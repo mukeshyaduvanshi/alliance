@@ -5,7 +5,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import {
   buildPaginated,
   getPagination,
@@ -28,14 +28,14 @@ export class VendorService {
   ) {}
 
   async register(tenantId: string, dto: RegisterVendorDto) {
-    const existingPan = await this.prisma.businessProfile.findUnique({
-      where: { panNumber: dto.panNumber },
-    });
+    // const existingPan = await this.prisma.businessProfile.findUnique({
+    //   where: { panNumber: dto.panNumber },
+    // });
 
-    if (existingPan)
-      throw new ConflictException(
-        'A business is already registered with this PAN',
-      );
+    // if (existingPan)
+    //   throw new ConflictException(
+    //     'A business is already registered with this PAN',
+    //   );
 
     const existingEmail = await this.prisma.vendor.findFirst({
       where: { tenantId, email: dto.email, deletedAt: null },
@@ -115,7 +115,12 @@ export class VendorService {
     page?: string | number,
     pageSize?: string | number,
   ): Promise<Paginated<Record<string, unknown>>> {
-    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const {
+      skip,
+      take,
+      page: p,
+      pageSize: size,
+    } = getPagination(page, pageSize);
     const where = {
       tenantId,
       deletedAt: null,
