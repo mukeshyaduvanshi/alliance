@@ -84,9 +84,14 @@ Browser testing ke liye: **[testing-guide.md](./testing-guide.md)**
 | # | Module | Status |
 |---|--------|--------|
 | 1 | Auth (login + register) | ✅ Done |
-| 2 | Dashboard | ⬜ Pending (placeholder only) |
-| 3 | Assigned Orders + Negotiation | ⬜ Pending |
-| 4 | Rate Card / Payments / Performance | ⬜ Pending |
+| 2 | Dashboard | ✅ Done (KPIs + recent orders) |
+| 3 | Assigned Orders + Negotiation | ✅ Done (list, detail, negotiate, history) |
+| 4 | Rate Card | ✅ Done (my rates + select region) |
+| 5 | Payments | ✅ Done (read-only, order status compose) |
+| 6 | Performance | ✅ Done (order stats) |
+| 7 | Notifications | ✅ Done (read/unread + mark all) |
+
+> **F-5 complete (Aug 07):** backend vendor pagination (#1 orders, #2 my-rates, #3 browse, #4 notifications params) done. User decisions: Payments = read-only, Performance = order stats, accept = implicit, status update = skip. Playwright: 8/8 routes PASS + E2E ALL PASS (negotiate flow verified). Full log in `vendor-implementation-plan.md`.
 
 ## Phase F-6: Manager Portal (apps/manager)
 | # | Module | Status |

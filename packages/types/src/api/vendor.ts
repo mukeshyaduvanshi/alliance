@@ -62,3 +62,69 @@ export interface NegotiationResponseDto {
   status: NegotiationStatus;
   responseRemarks?: string | null;
 }
+
+export interface VendorProductRateDto {
+  id: string;
+  vendorId: string;
+  productId: string;
+  region: Region;
+  isActive: boolean;
+  name?: string;
+  unit?: string;
+  rate?: string | null;
+  category?: { id: string; name: string } | null;
+  vendorRegionRates?: { region: Region; rate: string }[];
+}
+
+export interface VendorOrderItemDto {
+  id: string;
+  productId: string;
+  region: Region;
+  quantity: string;
+  rateSnapshot: string;
+  amount: string;
+  vendorRateSnapshot?: string | null;
+  vendorAmount?: string | null;
+  product?: { id: string; name: string; unit: string };
+}
+
+export interface VendorOrderArtworkDto {
+  id: string;
+  fileUrl: string;
+  fileName: string;
+  type: string;
+  version: number;
+  uploadedAt: string;
+}
+
+export interface VendorOrderNegotiationDto {
+  id: string;
+  proposedAmount: string;
+  remarks?: string | null;
+  status: NegotiationStatus;
+  responseRemarks?: string | null;
+  createdAt: string;
+}
+
+export interface VendorOrderDto {
+  id: string;
+  tenantId: string;
+  brandId: string;
+  vendorId?: string | null;
+  poId?: string | null;
+  orderNumber: string;
+  status: string;
+  siteLocation: string;
+  totalAmount: string;
+  vendorTotalAmount?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items?: VendorOrderItemDto[];
+  artworks?: VendorOrderArtworkDto[];
+  negotiations?: VendorOrderNegotiationDto[];
+}
+
+export interface ProposeNegotiationInput {
+  proposedAmount: number;
+  remarks?: string;
+}

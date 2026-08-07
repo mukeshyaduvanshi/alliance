@@ -16,13 +16,20 @@ export class VendorNotificationController {
   constructor(private notificationService: NotificationService) {}
 
   @Get()
-  findAll(@Req() req: any, @Query('isRead') isRead?: string) {
+  findAll(
+    @Req() req: any,
+    @Query('isRead') isRead?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
     const read = isRead === undefined ? undefined : isRead === 'true';
     return this.notificationService.listForRecipient(
       req.user.tenantId,
       'VENDOR',
       req.user.vendorId,
       read,
+      page,
+      pageSize,
     );
   }
 

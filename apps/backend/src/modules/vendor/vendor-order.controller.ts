@@ -18,8 +18,18 @@ export class VendorOrderController {
   constructor(private negotiationService: OrderNegotiationService) {}
 
   @Get()
-  findAll(@Req() req: any, @Query('status') status?: string) {
-    return this.negotiationService.findAllForVendor(req.user.vendorId, status);
+  findAll(
+    @Req() req: any,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.negotiationService.findAllForVendor(
+      req.user.vendorId,
+      status,
+      page,
+      pageSize,
+    );
   }
 
   @Get(':id')

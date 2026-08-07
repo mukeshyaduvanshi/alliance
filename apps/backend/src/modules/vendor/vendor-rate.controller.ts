@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { VendorJwtAuthGuard } from './guards/vendor-jwt-auth.guard';
 import { VendorRateService } from './vendor-rate.service';
 import { SelectRateDto } from './dto/select-rate.dto';
@@ -9,8 +9,16 @@ export class VendorRateController {
   constructor(private vendorRateService: VendorRateService) {}
 
   @Get()
-  browse(@Req() req: any) {
-    return this.vendorRateService.browseProducts(req.user.tenantId);
+  browse(
+    @Req() req: any,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.vendorRateService.browseProducts(
+      req.user.tenantId,
+      page,
+      pageSize,
+    );
   }
 
   @Post('select-rate')
@@ -23,7 +31,11 @@ export class VendorRateController {
   }
 
   @Get('my-rates')
-  myRates(@Req() req: any) {
-    return this.vendorRateService.listOwnRates(req.user.vendorId);
+  myRates(
+    @Req() req: any,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.vendorRateService.listOwnRates(req.user.vendorId, page, pageSize);
   }
 }

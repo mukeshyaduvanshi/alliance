@@ -6,6 +6,7 @@ import { AppShell, type NavItem } from "@cj/ui";
 import { clearSession } from "@/lib/session";
 
 import { vendorNavItems } from "@/lib/navigation";
+import { useVendorProfile } from "@/features/queries";
 
 function toNavItems(items: typeof vendorNavItems): NavItem[] {
   return items.map((item) => ({
@@ -23,6 +24,7 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { data: profile } = useVendorProfile();
 
   const handleLogout = () => {
     clearSession();
@@ -33,7 +35,7 @@ export default function DashboardLayout({
     <AppShell
       navItems={toNavItems(vendorNavItems)}
       title="Vendor"
-      user={{ name: "Vendor User" }}
+      user={{ name: profile?.vendorName ?? "Vendor User" }}
       activeHref={pathname}
       onNavigate={(href) => router.push(href)}
       onLogout={handleLogout}

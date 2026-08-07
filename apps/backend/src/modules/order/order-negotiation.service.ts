@@ -8,6 +8,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ProposeNegotiationDto } from './dto/propose-negotiation.dto';
 import { RespondNegotiationDto } from './dto/respond-negotiation.dto';
 import { NotificationService } from '../notification/notification.service';
+import {
+  buildPaginated,
+  getPagination,
+  type Paginated,
+} from '../../common/pagination';
 
 @Injectable()
 export class OrderNegotiationService {
@@ -54,16 +59,34 @@ export class OrderNegotiationService {
   }
 
   // Vendor's own orders (once assigned)
-  async findAllForVendor(vendorId: string, status?: string) {
-    return this.prisma.order.findMany({
-      where: {
-        vendorId,
-        deletedAt: null,
-        ...(status ? { status: status as any } : {}),
-      },
-      include: { items: { include: { product: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAllForVendor(
+    vendorId: string,
+    status?: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ) {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = {
+      vendorId,
+      deletedAt: null,
+      ...(status ? { status: status as any } : {}),
+    };
+
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        include: {
+          items: { include: { product: true } },
+          negotiations: { orderBy: { createdAt: 'desc' } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return buildPaginated(orders, total, p, size);
   }
 
   async findOneForVendor(vendorId: string, orderId: string) {

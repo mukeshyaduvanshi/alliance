@@ -1,5 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ProductStatus } from '@database/database';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  buildPaginated,
+  getPagination,
+  type Paginated,
+} from '../../common/pagination';
 import { SelectRateDto } from './dto/select-rate.dto';
 
 @Injectable()
@@ -7,12 +13,26 @@ export class VendorRateService {
   constructor(private prisma: PrismaService) {}
 
   // Vendor browses all products with the Admin's vendor-side region master
-  async browseProducts(tenantId: string) {
-    return this.prisma.product.findMany({
-      where: { tenantId, deletedAt: null, status: 'ACTIVE' },
-      include: { category: true, vendorRegionRates: true },
-      orderBy: { name: 'asc' },
-    });
+  async browseProducts(
+    tenantId: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ) {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = { tenantId, deletedAt: null, status: ProductStatus.ACTIVE };
+
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        include: { category: true, vendorRegionRates: true },
+        orderBy: { name: 'asc' },
+        skip,
+        take,
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    return buildPaginated(products, total, p, size);
   }
 
   // Vendor selects a region for a product — this IS there rate
@@ -37,19 +57,33 @@ export class VendorRateService {
     });
   }
 
-  async listOwnRates(vendorId: string) {
-    const rates = await this.prisma.vendorProductRate.findMany({
-      where: { vendorId, isActive: true },
-      include: {
-        product: { include: { category: true, vendorRegionRates: true } },
-      },
-    });
+  async listOwnRates(
+    vendorId: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ) {
+    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const where = { vendorId, isActive: true };
 
-    return rates.map((r) => ({
+    const [rates, total] = await Promise.all([
+      this.prisma.vendorProductRate.findMany({
+        where,
+        include: {
+          product: { include: { category: true, vendorRegionRates: true } },
+        },
+        skip,
+        take,
+      }),
+      this.prisma.vendorProductRate.count({ where }),
+    ]);
+
+    const data = rates.map((r) => ({
       ...r.product,
       region: r.region,
       rate: r.product.vendorRegionRates.find((rr) => rr.region === r.region)
         ?.rate,
     }));
+
+    return buildPaginated(data, total, p, size);
   }
 }

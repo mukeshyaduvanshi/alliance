@@ -118,7 +118,7 @@ async function main() {
     }));
 
   const existingBrand = await prisma.brand.findFirst({
-    where: { brandName: "Sharma Prints" },
+    where: { email: "rahul@sharmaprints.com" },
   });
   const brand =
     existingBrand ??
@@ -184,6 +184,17 @@ async function main() {
         assignedById: adminUser!.id,
       },
     });
+    await prisma.vendorRegionRate.upsert({
+      where: {
+        productId_region: { productId: product.id, region: "PAN_INDIA" },
+      },
+      update: { rate: p.rate * 0.7 },
+      create: {
+        productId: product.id,
+        region: "PAN_INDIA",
+        rate: p.rate * 0.7,
+      },
+    });
   }
 
   // Sample Purchase Order for the brand
@@ -201,8 +212,59 @@ async function main() {
     },
   });
 
+  // Vendor onboarding workflow rule (0 steps → manual approval flow, F-4 fix)
+  await prisma.workflowRule.upsert({
+    where: {
+      tenantId_module: { tenantId: tenant.id, module: "vendor_onboarding" },
+    },
+    update: {},
+    create: {
+      tenantId: tenant.id,
+      name: "Vendor Onboarding Approval",
+      module: "vendor_onboarding",
+      description: "Vendor registration approval",
+      isActive: true,
+    },
+  });
+
+  // Vendor account for vendor portal testing
+  const vendorPasswordHash = await bcrypt.hash("Vendor@123", 10);
+  const existingVendorProfile = await prisma.businessProfile.findUnique({
+    where: { panNumber: "VPROPAN0001" },
+  });
+  const vendorProfile =
+    existingVendorProfile ??
+    (await prisma.businessProfile.create({
+      data: {
+        legalName: "PrintPro Solutions Pvt Ltd",
+        businessType: "PRIVATE_LIMITED",
+        panNumber: "VPROPAN0001",
+        addressLine1: "456 Industrial Estate",
+        city: "Mumbai",
+        state: "Maharashtra",
+        pincode: "400001",
+      },
+    }));
+  await prisma.vendor.upsert({
+    where: {
+      tenantId_email: { tenantId: tenant.id, email: "vendor@printpro.com" },
+    },
+    update: { passwordHash: vendorPasswordHash },
+    create: {
+      tenantId: tenant.id,
+      businessProfileId: vendorProfile.id,
+      vendorName: "PrintPro Solutions",
+      contactPersonName: "Vikram Patel",
+      email: "vendor@printpro.com",
+      phone: "9812345670",
+      passwordHash: vendorPasswordHash,
+      approvalStatus: "APPROVED",
+      isActive: true,
+    },
+  });
+
   console.log(
-    "Seed completed ✅ — Super Admin: admin@colorjet.com / Admin@123, Brand: rahul@sharmaprints.com / Brand@123",
+    "Seed completed ✅ — Super Admin: admin@colorjet.com / Admin@123, Brand: rahul@sharmaprints.com / Brand@123, Vendor: vendor@printpro.com / Vendor@123",
   );
 }
 
