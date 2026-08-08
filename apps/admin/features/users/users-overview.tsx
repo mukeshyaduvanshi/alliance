@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { UserPlus } from "lucide-react";
+import { KeyRound, Pencil, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -35,10 +35,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@cj/ui";
-import type { CreateUserDto, UserDto } from "@cj/types";
+import type { CreateUserDto, UpdateUserDto, UserDto, UserStatus } from "@cj/types";
+import { UserStatus as UserStatusEnum } from "@cj/types";
 import { formatDateTime } from "@cj/utils";
 
-import { useCreateUser, useRoles, useUsers } from "./queries";
+import {
+  useCreateUser,
+  useResetPassword,
+  useRoles,
+  useUpdateUser,
+  useUsers,
+} from "./queries";
 
 const createUserSchema = z.object({
   fullName: z.string().min(2, "Name required"),
@@ -49,6 +56,227 @@ const createUserSchema = z.object({
 });
 
 type CreateUserValues = z.infer<typeof createUserSchema>;
+
+function RoleSelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const { data: roles, isLoading } = useRoles();
+  return (
+    <Select value={value || undefined} onValueChange={onChange}>
+      <SelectTrigger>
+        <SelectValue placeholder="Select role" />
+      </SelectTrigger>
+      <SelectContent>
+        {isLoading ? (
+          <div className="p-2 text-sm">Loading roles...</div>
+        ) : (
+          roles?.data?.map((role) => (
+            <SelectItem key={role.id} value={role.id}>
+              {role.name}
+            </SelectItem>
+          ))
+        )}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function StatusSelect({
+  value,
+  onChange,
+}: {
+  value: UserStatus;
+  onChange: (v: UserStatus) => void;
+}) {
+  return (
+    <Select value={value} onValueChange={(v) => onChange(v as UserStatus)}>
+      <SelectTrigger>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {(Object.values(UserStatusEnum) as UserStatus[]).map((s) => (
+          <SelectItem key={s} value={s}>
+            {s}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function EditUserDialog({
+  user,
+  open,
+  onOpenChange,
+}: {
+  user: UserDto;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const updateUser = useUpdateUser();
+  const [fullName, setFullName] = React.useState(user.fullName);
+  const [phone, setPhone] = React.useState(user.phone ?? "");
+  const [roleId, setRoleId] = React.useState(user.roleId);
+  const [status, setStatus] = React.useState<UserStatus>(user.status);
+
+  async function handleSubmit() {
+    const data: UpdateUserDto = {};
+    if (fullName !== user.fullName) data.fullName = fullName;
+    if (phone !== (user.phone ?? "")) data.phone = phone || undefined;
+    if (roleId !== user.roleId) data.roleId = roleId;
+    if (status !== user.status) data.status = status;
+    if (Object.keys(data).length === 0) {
+      onOpenChange(false);
+      return;
+    }
+    try {
+      await updateUser.mutateAsync({ id: user.id, data });
+      toast.success("User updated");
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update user");
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit User</DialogTitle>
+          <DialogDescription>{user.email}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <FormLabel>Full Name</FormLabel>
+            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <FormLabel>Phone</FormLabel>
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 ..." />
+          </div>
+          <div className="space-y-2">
+            <FormLabel>Role</FormLabel>
+            <RoleSelect value={roleId} onChange={setRoleId} />
+          </div>
+          <div className="space-y-2">
+            <FormLabel>Status</FormLabel>
+            <StatusSelect value={status} onChange={setStatus} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={updateUser.isPending}>
+            {updateUser.isPending ? "Saving..." : "Save"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ResetPasswordDialog({
+  user,
+  open,
+  onOpenChange,
+}: {
+  user: UserDto;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const resetPassword = useResetPassword();
+  const [password, setPassword] = React.useState("");
+
+  async function handleSubmit() {
+    if (!password) return;
+    try {
+      await resetPassword.mutateAsync({ id: user.id, newPassword: password });
+      toast.success("Password reset");
+      setPassword("");
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to reset password");
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Reset Password</DialogTitle>
+          <DialogDescription>
+            Set a new password for {user.fullName}.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <FormLabel>New Password</FormLabel>
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Min 6 characters"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={!password || resetPassword.isPending}>
+            {resetPassword.isPending ? "Resetting..." : "Reset Password"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function UserActions({ user }: { user: UserDto }) {
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [resetOpen, setResetOpen] = React.useState(false);
+  const updateUser = useUpdateUser();
+
+  async function handleToggleStatus() {
+    try {
+      await updateUser.mutateAsync({
+        id: user.id,
+        data: {
+          status:
+            user.status === UserStatusEnum.ACTIVE
+              ? UserStatusEnum.INACTIVE
+              : UserStatusEnum.ACTIVE,
+        },
+      });
+      toast.success(user.status === "ACTIVE" ? "User deactivated" : "User activated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update status");
+    }
+  }
+
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <Button variant="ghost" size="icon-sm" title="Edit" onClick={() => setEditOpen(true)}>
+        <Pencil className="size-4" />
+      </Button>
+      <Button variant="ghost" size="icon-sm" title="Reset password" onClick={() => setResetOpen(true)}>
+        <KeyRound className="size-4" />
+      </Button>
+      <Button variant="ghost" size="sm" onClick={handleToggleStatus}>
+        {user.status === "ACTIVE" ? "Deactivate" : "Activate"}
+      </Button>
+      {editOpen && (
+        <EditUserDialog user={user} open={editOpen} onOpenChange={setEditOpen} />
+      )}
+      {resetOpen && (
+        <ResetPasswordDialog user={user} open={resetOpen} onOpenChange={setResetOpen} />
+      )}
+    </div>
+  );
+}
 
 const columns: ColumnDef<UserDto>[] = [
   {
@@ -89,15 +317,13 @@ const columns: ColumnDef<UserDto>[] = [
         : "Never",
   },
   {
-    accessorKey: "createdAt",
-    header: "Created",
-    cell: ({ row }) => formatDateTime(row.original.createdAt),
+    id: "actions",
+    cell: ({ row }) => <UserActions user={row.original} />,
   },
 ];
 
 function CreateUserDialog() {
   const [open, setOpen] = React.useState(false);
-  const { data: roles, isLoading: rolesLoading } = useRoles();
   const createUser = useCreateUser();
 
   const form = useForm<CreateUserValues>({
@@ -201,25 +427,7 @@ function CreateUserDialog() {
                 <FormItem>
                   <FormLabel>Role</FormLabel>
                   <FormControl>
-                    <Select
-                      value={field.value || undefined}
-                      onValueChange={field.onChange}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {rolesLoading ? (
-                          <div className="p-2 text-sm">Loading roles...</div>
-                        ) : (
-                          roles?.data?.map((role) => (
-                            <SelectItem key={role.id} value={role.id}>
-                              {role.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <RoleSelect value={field.value} onChange={field.onChange} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

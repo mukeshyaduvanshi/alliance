@@ -128,3 +128,19 @@ export interface ProposeNegotiationInput {
   proposedAmount: number;
   remarks?: string;
 }
+
+export interface AdminVendorRateDto {
+  id: string;
+  productId: string;
+  productName: string;
+  category: string | null;
+  region: Region;
+  rate: string | null;
+  updatedAt: string;
+}
+
+export interface AssignVendorRateInput {
+  productId: string;
+  region: Region;
+  rate: number;
+}

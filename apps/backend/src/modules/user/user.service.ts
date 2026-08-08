@@ -11,6 +11,8 @@ import {
   type Paginated,
 } from '../../common/pagination';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class UserService {
@@ -63,6 +65,43 @@ export class UserService {
 
     const safe = users.map(({ passwordHash: _, ...u }) => u);
     return buildPaginated(safe, total, p, size);
+  }
+
+  async update(tenantId: string, id: string, dto: UpdateUserDto) {
+    const existing = await this.prisma.user.findFirst({
+      where: { id, tenantId, deletedAt: null },
+    });
+    if (!existing) throw new NotFoundException('User not found');
+
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: {
+        ...(dto.fullName !== undefined ? { fullName: dto.fullName } : {}),
+        ...(dto.phone !== undefined ? { phone: dto.phone } : {}),
+        ...(dto.roleId !== undefined ? { roleId: dto.roleId } : {}),
+        ...(dto.status !== undefined ? { status: dto.status } : {}),
+      },
+      include: { role: true },
+    });
+
+    const { passwordHash: _, ...safeUser } = user;
+    return safeUser;
+  }
+
+  async resetPassword(tenantId: string, id: string, dto: ResetPasswordDto) {
+    const existing = await this.prisma.user.findFirst({
+      where: { id, tenantId, deletedAt: null },
+    });
+    if (!existing) throw new NotFoundException('User not found');
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+
+    await this.prisma.user.update({
+      where: { id },
+      data: { passwordHash },
+    });
+
+    return { message: 'Password reset successfully' };
   }
 
   async me(tenantId: string, userId: string) {

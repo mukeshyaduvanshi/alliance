@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { SystemAdminService } from './system-admin.service';
+import { QueueMonitorService } from '../queue-monitor/queue-monitor.service';
 import { CreateSubscriptionPlanDto } from './dto/create-subscription-plan.dto';
 import { CreateLicenseDto } from './dto/create-license.dto';
 import { LogBackupDto } from './dto/log-backup.dto';
@@ -20,7 +21,10 @@ import { LogBackupDto } from './dto/log-backup.dto';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('system')
 export class SystemAdminController {
-  constructor(private systemAdminService: SystemAdminService) {}
+  constructor(
+    private systemAdminService: SystemAdminService,
+    private queueMonitorService: QueueMonitorService,
+  ) {}
 
   @RequirePermission('system_admin', 'VIEW')
   @Get('health')
@@ -98,5 +102,39 @@ export class SystemAdminController {
   @Get('sms-logs')
   listSmsLogs(@Req() req: any) {
     return this.systemAdminService.listSmsLogs(req.user.tenantId);
+  }
+
+  @RequirePermission('system_admin', 'VIEW')
+  @Get('queues')
+  queueOverview() {
+    return this.queueMonitorService.getOverview();
+  }
+
+  @RequirePermission('system_admin', 'VIEW')
+  @Get('queues/:name/jobs')
+  queueJobs(
+    @Param('name') name: string,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.queueMonitorService.getJobs(
+      name,
+      status as any,
+      Number(page) || 1,
+      Math.min(100, Math.max(1, Number(pageSize) || 20)),
+    );
+  }
+
+  @RequirePermission('system_admin', 'EDIT')
+  @Post('queues/:name/jobs/:id/retry')
+  retryQueueJob(@Param('name') name: string, @Param('id') id: string) {
+    return this.queueMonitorService.retryJob(name, id);
+  }
+
+  @RequirePermission('system_admin', 'DELETE')
+  @Delete('queues/:name/jobs/:id')
+  removeQueueJob(@Param('name') name: string, @Param('id') id: string) {
+    return this.queueMonitorService.removeJob(name, id);
   }
 }

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import Link from "next/link";
 import { Check, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -127,12 +128,12 @@ const columns: ColumnDef<VendorDto>[] = [
     accessorKey: "vendorName",
     header: "Vendor",
     cell: ({ row }) => (
-      <div>
-        <p className="font-medium">{row.original.vendorName}</p>
+      <Link href={`/vendors/${row.original.id}`}>
+        <p className="font-medium hover:underline">{row.original.vendorName}</p>
         {row.original.email && (
           <p className="text-muted-foreground text-xs">{row.original.email}</p>
         )}
-      </div>
+      </Link>
     ),
   },
   {

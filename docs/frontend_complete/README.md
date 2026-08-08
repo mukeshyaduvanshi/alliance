@@ -65,6 +65,8 @@ Browser testing ke liye: **[testing-guide.md](./testing-guide.md)**
 | 10 | Monitoring (SLA/Alerts) | §4.10 | ✅ Done (SLA CRUD + alerts resolve) |
 | 11 | Audit Logs | §4.10 | ✅ Done (filters + server pagination + CSV export) |
 
+> **F-3 + F-8 admin extras (Aug 08):** User **edit / reset-password / activate-deactivate** (backend `PATCH /users/:id` + `POST /users/:id/reset-password`), **Vendor detail page + rate assignment** (backend `GET/POST /vendors/:vendorId/rates`), **Notification Center** (bell + dropdown + page), **Orders-by-status chart** (recharts). Backend all verified live.
+
 ## Phase F-4: Brand Portal (apps/brand)
 | # | Module | Status |
 |---|--------|--------|
@@ -112,9 +114,19 @@ Browser testing ke liye: **[testing-guide.md](./testing-guide.md)**
 | # | Module | Status |
 |---|--------|--------|
 | 1 | App shell + login | ✅ Done |
-| 2 | Dashboard | ⬜ Pending (placeholder only) |
-| 3 | Error Logs / Queues / Messages / Backups | ⬜ Pending |
-| 4 | Subscriptions & Licenses | ⬜ Pending |
+| 2 | Dashboard | ✅ Done (health StatCards + recent errors + queues + backups + cache) |
+| 3 | Server Health | ✅ Done (DB/Redis status, uptime, latency) |
+| 4 | Error Logs | ✅ Done (level filter + stack trace dialog) |
+| 5 | Queues & Jobs | ✅ Done (BullMQ overview + jobs list + retry + remove — **backend queue module built**) |
+| 6 | Message Logs | ✅ Done (Email + SMS) |
+| 7 | Backups | ✅ Done (history + log backup → enqueues queue job) |
+| 8 | Subscriptions & Licenses | ✅ Done (plans list/create + license card/create) |
+| 9 | Cache & Storage | ✅ Done (key list + delete + flush) |
+| — | Permission gating | ✅ Done (`system_admin/*` gated sidebar/pages/buttons, `/users/me` session enrich) |
+
+> **F-7 complete (Aug 08):** backend queue-monitor module added (`bullmq` + `QueueMonitorService`, endpoints `/system/queues*`, notification/backup flows enqueue real jobs). Backend verified live: health, error-logs, cache, backups, plans, licenses, email/sms logs, queues overview/jobs/retry/remove — sab 200. Dashboard charts added (Queue Depth + Errors by Level, recharts). Frontend build ✅ 16 routes. Playwright browser test pending (next session).
+
+> **F-8 (TRD):** Charts (recharts) added to admin (orders-by-status) + developer (queue depth, errors by level) dashboards. Dark mode already configured (next-themes, topbar toggle).
 
 ---
 

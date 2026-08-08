@@ -13,12 +13,17 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { VendorService } from './vendor.service';
+import { VendorRateService } from './vendor-rate.service';
+import { AssignVendorRateDto } from './dto/assign-vendor-rate.dto';
 import { ApprovalActionDto } from './dto/approval-action.dto';
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('vendors')
 export class VendorController {
-  constructor(private vendorService: VendorService) {}
+  constructor(
+    private vendorService: VendorService,
+    private vendorRateService: VendorRateService,
+  ) {}
 
   @RequirePermission('vendor', 'VIEW')
   @Get()
@@ -82,5 +87,24 @@ export class VendorController {
     @Body('isActive') isActive: boolean,
   ) {
     return this.vendorService.updateStatus(req.user.tenantId, id, isActive);
+  }
+
+  @RequirePermission('vendor', 'VIEW')
+  @Get(':vendorId/rates')
+  listVendorRates(
+    @Req() req: any,
+    @Param('vendorId') vendorId: string,
+  ) {
+    return this.vendorRateService.listRatesForAdmin(req.user.tenantId, vendorId);
+  }
+
+  @RequirePermission('vendor', 'EDIT')
+  @Post(':vendorId/rates')
+  assignVendorRate(
+    @Req() req: any,
+    @Param('vendorId') vendorId: string,
+    @Body() dto: AssignVendorRateDto,
+  ) {
+    return this.vendorRateService.assignRate(req.user.tenantId, vendorId, dto);
   }
 }

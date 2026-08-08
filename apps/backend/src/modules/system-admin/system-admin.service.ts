@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import Redis from 'ioredis';
 import { PrismaService } from '../../prisma/prisma.service';
+import { QueueMonitorService } from '../queue-monitor/queue-monitor.service';
 import { CreateSubscriptionPlanDto } from './dto/create-subscription-plan.dto';
 import { CreateLicenseDto } from './dto/create-license.dto';
 import { LogBackupDto } from './dto/log-backup.dto';
@@ -13,7 +14,10 @@ import { LogBackupDto } from './dto/log-backup.dto';
 export class SystemAdminService {
   private redis: Redis;
 
-  constructor(private prisma: PrismaService) {
+  constructor(
+    private prisma: PrismaService,
+    private queueMonitor: QueueMonitorService,
+  ) {
     this.redis = new Redis(process.env.REDIS_URL as string, {
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => {
@@ -94,7 +98,7 @@ export class SystemAdminService {
   // ===== Backup Status =====
 
   async logBackup(tenantId: string, dto: LogBackupDto) {
-    return this.prisma.backupLog.create({
+    const log = await this.prisma.backupLog.create({
       data: {
         tenantId,
         status: dto.status,
@@ -104,6 +108,16 @@ export class SystemAdminService {
         completedAt: dto.status !== 'IN_PROGRESS' ? new Date() : null,
       },
     });
+
+    // Track the backup in the queue (fire-and-forget)
+    await this.queueMonitor.add('backups', 'run-backup', {
+      tenantId,
+      backupLogId: log.id,
+      status: dto.status,
+      fileSizeMb: dto.fileSizeMb,
+    });
+
+    return log;
   }
 
   async listBackups(tenantId: string, limit = 20) {

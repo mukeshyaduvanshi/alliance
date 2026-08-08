@@ -64,3 +64,33 @@ export interface BackupLogDto {
   startedAt: string;
   completedAt?: string | null;
 }
+
+export type QueueJobStatus =
+  | "waiting"
+  | "active"
+  | "delayed"
+  | "failed"
+  | "completed"
+  | "paused"
+  | "prioritized";
+
+export interface QueueOverviewDto {
+  name: string;
+  waiting: number;
+  active: number;
+  delayed: number;
+  failed: number;
+  completed: number;
+}
+
+export interface QueueJobDto {
+  id: string;
+  name: string;
+  data: Record<string, unknown>;
+  status: QueueJobStatus;
+  attemptsMade: number;
+  failedReason?: string | null;
+  timestamp: number | null;
+  processedOn?: number | null;
+  finishedOn?: number | null;
+}

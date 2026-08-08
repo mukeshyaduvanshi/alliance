@@ -88,3 +88,11 @@ export function useOpenAlerts() {
       api.get<Paginated<ExceptionAlertDto>>("/alerts?isResolved=false&page=1&pageSize=10"),
   });
 }
+
+export function useOrderStatusBreakdown() {
+  return useQuery({
+    queryKey: ["orders", "breakdown"],
+    queryFn: () =>
+      api.get<Paginated<OrderDto>>("/orders?page=1&pageSize=100"),
+  });
+}

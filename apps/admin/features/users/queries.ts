@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { CreateUserDto, Paginated, RoleDto, UserDto } from "@cj/types";
+import type {
+  CreateUserDto,
+  Paginated,
+  RoleDto,
+  UpdateUserDto,
+  UserDto,
+} from "@cj/types";
 
 import { api } from "@/lib/api";
 
@@ -21,6 +27,28 @@ export function useCreateUser() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users"] });
       qc.invalidateQueries({ queryKey: ["brands"] });
+    },
+  });
+}
+
+export function useUpdateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateUserDto }) =>
+      api.patch<UserDto>(`/users/${id}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+}
+
+export function useResetPassword() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, newPassword }: { id: string; newPassword: string }) =>
+      api.post(`/users/${id}/reset-password`, { newPassword }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users"] });
     },
   });
 }

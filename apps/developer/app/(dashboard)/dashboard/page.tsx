@@ -1,18 +1,13 @@
-import { PageHeader, StatCard } from "@cj/ui";
+"use client";
+
+import { AccessDenied } from "@/components/access-denied";
+import { DashboardOverview } from "@/features/dashboard/dashboard-overview";
+import { usePermission } from "@/lib/permissions";
 
 export default function DeveloperDashboardPage() {
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Dashboard"
-        description="System health & operations overview"
-      />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Server Status" value="—" />
-        <StatCard label="API Error Rate" value="—" />
-        <StatCard label="Queued Jobs" value="—" />
-        <StatCard label="Active Licenses" value="—" />
-      </div>
-    </div>
-  );
+  const allowed = usePermission("system_admin", "VIEW");
+
+  if (!allowed) return <AccessDenied />;
+
+  return <DashboardOverview />;
 }

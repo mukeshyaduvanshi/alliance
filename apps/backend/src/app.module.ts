@@ -17,6 +17,7 @@ import { VendorModule } from './modules/vendor/vendor.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { SystemAdminModule } from './modules/system-admin/system-admin.module';
+import { QueueMonitorModule } from './modules/queue-monitor/queue-monitor.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
@@ -44,6 +45,7 @@ import { InvoiceModule } from './modules/invoice/invoice.module';
     ScheduleModule.forRoot(),
     MonitoringModule,
     SystemAdminModule,
+    QueueMonitorModule,
     AuditLogModule,
     NotificationModule,
     BusinessModelModule,

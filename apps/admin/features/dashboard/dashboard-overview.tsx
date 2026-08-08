@@ -1,7 +1,17 @@
 "use client";
 
+import * as React from "react";
 import { Building2, CheckCircle2, Package, Users } from "lucide-react";
 import Link from "next/link";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { Badge } from "@cj/ui";
 import { Card, CardContent } from "@cj/ui";
@@ -9,7 +19,7 @@ import { PageHeader } from "@cj/ui";
 import { StatCard } from "@cj/ui";
 import { Skeleton } from "@cj/ui";
 
-import { useDashboardKpis, useOpenAlerts } from "./queries";
+import { useDashboardKpis, useOpenAlerts, useOrderStatusBreakdown } from "./queries";
 
 function StatSkeleton() {
   return (
@@ -29,6 +39,18 @@ function StatSkeleton() {
 export function DashboardOverview() {
   const { kpis, isLoading } = useDashboardKpis();
   const { data: alerts } = useOpenAlerts();
+  const { data: orders } = useOrderStatusBreakdown();
+
+  const statusData = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const o of orders?.data ?? []) {
+      counts[o.status] = (counts[o.status] ?? 0) + 1;
+    }
+    return Object.entries(counts).map(([status, count]) => ({
+      status,
+      Orders: count,
+    }));
+  }, [orders]);
 
   return (
     <div className="space-y-6">
@@ -65,6 +87,22 @@ export function DashboardOverview() {
             icon={CheckCircle2}
           />
         </div>
+      )}
+
+      {statusData.length > 0 && (
+        <Card>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={statusData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="status" fontSize={10} interval={0} angle={-20} textAnchor="end" height={60} />
+                <YAxis fontSize={12} allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="Orders" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">

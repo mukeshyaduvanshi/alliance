@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { Paginated, VendorDto } from "@cj/types";
+import type {
+  AdminVendorRateDto,
+  AssignVendorRateInput,
+  Paginated,
+  ProductDto,
+  VendorDto,
+} from "@cj/types";
 
 import { api } from "@/lib/api";
 
@@ -53,5 +59,36 @@ export function useToggleVendorStatus() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["vendors"] });
     },
+  });
+}
+
+export function useVendorRates(vendorId: string) {
+  return useQuery({
+    queryKey: ["vendors", vendorId, "rates"],
+    queryFn: () => api.get<AdminVendorRateDto[]>(`/vendors/${vendorId}/rates`),
+    enabled: Boolean(vendorId),
+  });
+}
+
+export function useAssignVendorRate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      vendorId,
+      data,
+    }: {
+      vendorId: string;
+      data: AssignVendorRateInput;
+    }) => api.post(`/vendors/${vendorId}/rates`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vendors"] });
+    },
+  });
+}
+
+export function useProductsForRates() {
+  return useQuery({
+    queryKey: ["products", "dropdown"],
+    queryFn: () => api.get<Paginated<ProductDto>>(`/products?page=1&pageSize=100`),
   });
 }

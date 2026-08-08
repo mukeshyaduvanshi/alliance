@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   Activity,
   ScrollText,
+  Bell,
   type LucideIcon,
 } from "lucide-react";
 
@@ -80,4 +81,5 @@ export const adminNavItems: NavItem[] = [
     ],
   },
   { title: "Audit Logs", href: "/audit-logs", icon: ScrollText },
+  { title: "Notifications", href: "/notifications", icon: Bell },
 ];

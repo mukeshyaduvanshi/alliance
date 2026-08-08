@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { NotificationRecipientType } from '@database/database';
 import { PrismaService } from '../../prisma/prisma.service';
+import { QueueMonitorService } from '../queue-monitor/queue-monitor.service';
 import {
   buildPaginated,
   getPagination,
@@ -22,7 +23,10 @@ export interface NotifyInput {
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private queueMonitor: QueueMonitorService,
+  ) {}
 
   // ===== Core combined trigger — call this from anywhere in the app =====
 
@@ -51,6 +55,16 @@ export class NotificationService {
     if (input.sms) {
       await this.sendSms(input.tenantId, input.sms.to, input.sms.message);
     }
+
+    // 4. Track delivery via the notifications queue (fire-and-forget)
+    await this.queueMonitor.add('notifications', 'deliver-notification', {
+      tenantId: input.tenantId,
+      recipientType: input.recipientType,
+      recipientId: input.recipientId,
+      title: input.title,
+      hasEmail: Boolean(input.email),
+      hasSms: Boolean(input.sms),
+    });
   }
 
   // ===== In-App Notification =====
