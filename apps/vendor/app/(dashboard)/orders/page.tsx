@@ -12,6 +12,7 @@ import type { VendorOrderDto } from "@cj/types";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { useVendorOrders } from "@/features/queries";
+import { orderBadge } from "@/lib/status";
 
 const statusTabs: { value: string; label: string }[] = [
   { value: "ALL", label: "All" },
@@ -39,7 +40,11 @@ const columns: ColumnDef<VendorOrderDto, unknown>[] = [
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => <Badge variant="secondary">{row.original.status}</Badge>,
+    cell: ({ row }) => (
+      <Badge variant={orderBadge(row.original.status)}>
+        {row.original.status}
+      </Badge>
+    ),
   },
   {
     accessorKey: "totalAmount",

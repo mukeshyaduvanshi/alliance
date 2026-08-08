@@ -39,6 +39,8 @@ import type { CreateUserDto, UpdateUserDto, UserDto, UserStatus } from "@cj/type
 import { UserStatus as UserStatusEnum } from "@cj/types";
 import { formatDateTime } from "@cj/utils";
 
+import { InitialsAvatar } from "@/components/initials-avatar";
+
 import {
   useCreateUser,
   useResetPassword,
@@ -283,16 +285,21 @@ const columns: ColumnDef<UserDto>[] = [
     accessorKey: "fullName",
     header: "Name",
     cell: ({ row }) => (
-      <div>
-        <p className="font-medium">{row.original.fullName}</p>
-        <p className="text-muted-foreground text-xs">{row.original.email}</p>
+      <div className="flex items-center gap-3">
+        <InitialsAvatar name={row.original.fullName} tone={0} />
+        <div>
+          <p className="font-medium">{row.original.fullName}</p>
+          <p className="text-muted-foreground text-xs">{row.original.email}</p>
+        </div>
       </div>
     ),
   },
   {
     accessorKey: "role.name",
     header: "Role",
-    cell: ({ row }) => row.original.role?.name ?? "—",
+    cell: ({ row }) => (
+      <Badge variant="violet">{row.original.role?.name ?? "—"}</Badge>
+    ),
   },
   {
     accessorKey: "phone",
@@ -303,7 +310,15 @@ const columns: ColumnDef<UserDto>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => (
-      <Badge variant={row.original.status === "ACTIVE" ? "default" : "secondary"}>
+      <Badge
+        variant={
+          row.original.status === UserStatusEnum.ACTIVE
+            ? "success"
+            : row.original.status === UserStatusEnum.SUSPENDED
+              ? "destructive"
+              : "warning"
+        }
+      >
         {row.original.status}
       </Badge>
     ),

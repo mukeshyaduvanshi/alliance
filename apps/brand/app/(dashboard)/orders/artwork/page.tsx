@@ -14,6 +14,7 @@ import { formatDateTime, formatINR } from "@cj/utils";
 import { toast } from "sonner";
 
 import { useApproveArtwork, useBrandOrders, useRejectArtwork } from "@/features/queries";
+import { orderBadge } from "@/lib/status";
 
 export default function BrandArtworkApprovalPage() {
   const [page, setPage] = React.useState(1);
@@ -84,7 +85,7 @@ export default function BrandArtworkApprovalPage() {
                       {formatINR(Number(order.totalAmount))}
                     </p>
                   </div>
-                  <Badge variant="secondary">{order.status}</Badge>
+                  <Badge variant={orderBadge(order.status)}>{order.status}</Badge>
                 </div>
 
                 <div className="space-y-1">

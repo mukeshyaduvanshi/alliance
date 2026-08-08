@@ -39,6 +39,13 @@ function StatSkeleton() {
   );
 }
 
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 function PendingApprovalRow({ instance }: { instance: WorkflowInstanceDto }) {
   const canApprove = usePermission("workflow", "APPROVE");
   const canReject = usePermission("workflow", "REJECT");
@@ -46,7 +53,7 @@ function PendingApprovalRow({ instance }: { instance: WorkflowInstanceDto }) {
   const [decision, setDecision] = React.useState<Decision | null>(null);
 
   return (
-    <div className="flex items-center justify-between gap-2 rounded-md border p-3">
+    <div className="flex items-center justify-between gap-2 rounded-lg border p-3">
       <div className="min-w-0">
         <p className="truncate text-sm font-medium">
           {instance.workflowRule?.name ?? instance.entityType}
@@ -101,6 +108,22 @@ export function DashboardOverview() {
         description="KAM / Manager operations overview"
       />
 
+      {/* Hero banner */}
+      <div className="from-primary to-emerald-600 relative overflow-hidden rounded-xl bg-gradient-to-br p-6 text-white shadow-sm sm:p-8">
+        <div className="pointer-events-none absolute -top-10 -right-10 size-48 rounded-full bg-white/10" />
+        <div className="relative">
+          <p className="text-sm font-medium text-white/80">{greeting()}, KAM</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+            Your portfolio at a glance
+          </h2>
+          <p className="mt-2 text-sm text-white/80">
+            {pendingApprovals.length > 0
+              ? `${pendingApprovals.length} approval${pendingApprovals.length > 1 ? "s" : ""} awaiting your decision`
+              : "You're all caught up on approvals"}
+          </p>
+        </div>
+      </div>
+
       {isLoading || isError ? (
         <StatSkeleton />
       ) : (
@@ -110,24 +133,28 @@ export function DashboardOverview() {
             value={kam?.totalBrands ?? 0}
             icon={Building2}
             hint="Brands assigned to you"
+            tone="blue"
           />
           <StatCard
             label="Active Orders"
             value={kam?.pendingOrders ?? 0}
             icon={Package}
             hint="In-progress orders"
+            tone="green"
           />
           <StatCard
             label="Pending Approvals"
             value={pending?.meta.total ?? 0}
             icon={CheckCircle2}
             hint="Awaiting your decision"
+            tone="amber"
           />
           <StatCard
             label="Open Alerts"
             value={alerts?.data?.length ?? kam?.activeAlerts ?? 0}
             icon={ShieldAlert}
             hint="Unresolved exceptions"
+            tone="rose"
           />
         </div>
       )}
@@ -136,9 +163,12 @@ export function DashboardOverview() {
         <Card>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium">Pending Approvals</h2>
+              <div>
+                <h2 className="text-sm font-semibold">Pending Approvals</h2>
+                <p className="text-muted-foreground text-xs">Awaiting your decision</p>
+              </div>
               <Link href="/approvals">
-                <Badge variant="secondary">{pendingApprovals.length}</Badge>
+                <Badge variant="warning">{pendingApprovals.length}</Badge>
               </Link>
             </div>
             {pendingApprovals.length > 0 ? (
@@ -148,9 +178,12 @@ export function DashboardOverview() {
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm">
-                No pending approvals. All caught up.
-              </p>
+              <div className="bg-muted/50 flex flex-col items-center gap-2 rounded-lg border border-dashed py-8 text-center">
+                <CheckCircle2 className="text-primary size-8" />
+                <p className="text-muted-foreground text-sm">
+                  No pending approvals. All caught up.
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -158,9 +191,14 @@ export function DashboardOverview() {
         <Card>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium">Open Alerts</h2>
+              <div>
+                <h2 className="text-sm font-semibold">Open Alerts</h2>
+                <p className="text-muted-foreground text-xs">Unresolved exceptions</p>
+              </div>
               <Link href="/sla/alerts">
-                <Badge variant="secondary">{alerts?.data?.length ?? 0}</Badge>
+                <Badge variant={alerts?.data?.length ? "destructive" : "secondary"}>
+                  {alerts?.data?.length ?? 0}
+                </Badge>
               </Link>
             </div>
             {alerts?.data && alerts.data.length > 0 ? (
@@ -168,10 +206,12 @@ export function DashboardOverview() {
                 {alerts.data.slice(0, 5).map((alert) => (
                   <div
                     key={alert.id}
-                    className="flex items-center justify-between rounded-md border p-3"
+                    className="flex items-center justify-between rounded-lg border p-3"
                   >
                     <span className="truncate text-sm">{alert.message}</span>
-                    <Badge variant="outline">{alert.severity}</Badge>
+                    <Badge variant={alert.severity === "HIGH" ? "destructive" : "outline"}>
+                      {alert.severity}
+                    </Badge>
                   </div>
                 ))}
               </div>
@@ -187,7 +227,10 @@ export function DashboardOverview() {
       <Card>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium">Recent Orders</h2>
+            <div>
+              <h2 className="text-sm font-semibold">Recent Orders</h2>
+              <p className="text-muted-foreground text-xs">Latest activity across your brands</p>
+            </div>
             <Link href="/orders">
               <Badge variant="outline">View all</Badge>
             </Link>
@@ -200,7 +243,7 @@ export function DashboardOverview() {
                 <Link
                   key={order.id}
                   href={`/orders/${order.id}`}
-                  className="flex items-center justify-between rounded-md border p-3 transition-colors hover:bg-muted/50"
+                  className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">
@@ -214,7 +257,7 @@ export function DashboardOverview() {
                     <span className="text-sm font-medium">
                       {formatINR(order.totalAmount)}
                     </span>
-                    <Badge variant="outline">{order.status}</Badge>
+                    <Badge variant="info">{order.status}</Badge>
                   </div>
                 </Link>
               ))}

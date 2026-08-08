@@ -27,6 +27,8 @@ import type { OrderDto } from "@cj/types";
 import { OrderStatus } from "@cj/types";
 import { formatDateTime, formatINR } from "@cj/utils";
 
+import { orderStatusVariant } from "@/lib/status";
+
 import {
   useAssignVendor,
   useOrders,
@@ -148,7 +150,7 @@ const columns: ColumnDef<OrderDto>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => (
-      <Badge variant={row.original.status === "CANCELLED" ? "destructive" : "outline"}>
+      <Badge variant={orderStatusVariant(row.original.status)}>
         {row.original.status}
       </Badge>
     ),

@@ -19,6 +19,7 @@ import {
   useCancelOrder,
   useRejectArtwork,
 } from "@/features/queries";
+import { orderBadge } from "@/lib/status";
 
 function ArtworkApprovalActions({ orderId }: { orderId: string }) {
   const approve = useApproveArtwork();
@@ -108,7 +109,7 @@ export default function BrandOrderDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="secondary">{order.status}</Badge>
+          <Badge variant={orderBadge(order.status)}>{order.status}</Badge>
           {canCancel && (
             <Button
               variant="outline"

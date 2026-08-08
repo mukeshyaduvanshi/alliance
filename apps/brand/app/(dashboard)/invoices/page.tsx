@@ -12,6 +12,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Download } from "lucide-react";
 
 import { useBrandInvoices } from "@/features/queries";
+import { invoiceBadge } from "@/lib/status";
 
 const columns: ColumnDef<InvoiceDto, unknown>[] = [
   {
@@ -26,7 +27,11 @@ const columns: ColumnDef<InvoiceDto, unknown>[] = [
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => <Badge variant="secondary">{row.original.status}</Badge>,
+    cell: ({ row }) => (
+      <Badge variant={invoiceBadge(row.original.status)}>
+        {row.original.status}
+      </Badge>
+    ),
   },
   {
     accessorKey: "po",

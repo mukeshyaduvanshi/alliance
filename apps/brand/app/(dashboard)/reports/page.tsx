@@ -11,6 +11,7 @@ import { formatDateTime, formatINR } from "@cj/utils";
 import { toast } from "sonner";
 
 import { useBrandOrders, useBrandPurchaseOrders } from "@/features/queries";
+import { orderBadge } from "@/lib/status";
 
 export default function BrandReportsPage() {
   const [page, setPage] = React.useState(1);
@@ -110,7 +111,7 @@ export default function BrandReportsPage() {
                     <span className="text-sm">
                       {formatINR(Number(o.totalAmount))}
                     </span>
-                    <Badge variant="secondary">{o.status}</Badge>
+                    <Badge variant={orderBadge(o.status)}>{o.status}</Badge>
                   </div>
                 </CardContent>
               </Card>

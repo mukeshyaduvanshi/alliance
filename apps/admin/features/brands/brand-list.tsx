@@ -23,6 +23,8 @@ import {
 import type { BrandDto } from "@cj/types";
 import { formatDateTime } from "@cj/utils";
 
+import { InitialsAvatar } from "@/components/initials-avatar";
+
 import { useApproveBrand, useBrands, useRejectBrand } from "./queries";
 
 export function ApprovalDialog({
@@ -100,7 +102,11 @@ export function ApprovalDialog({
 function ApprovalActions({ brand }: { brand: BrandDto }) {
   const [decision, setDecision] = React.useState<"APPROVE" | "REJECT" | null>(null);
   if (brand.approvalStatus !== "PENDING") {
-    return <Badge variant="secondary">{brand.approvalStatus}</Badge>;
+    return (
+      <Badge variant={brand.approvalStatus === "APPROVED" ? "success" : "destructive"}>
+        {brand.approvalStatus}
+      </Badge>
+    );
   }
   return (
     <div className="flex gap-1">
@@ -127,9 +133,12 @@ export const brandColumns: ColumnDef<BrandDto>[] = [
     accessorKey: "brandName",
     header: "Brand",
     cell: ({ row }) => (
-      <div>
-        <p className="font-medium">{row.original.brandName}</p>
-        <p className="text-muted-foreground text-xs">{row.original.email}</p>
+      <div className="flex items-center gap-3">
+        <InitialsAvatar name={row.original.brandName} tone={1} />
+        <div>
+          <p className="font-medium">{row.original.brandName}</p>
+          <p className="text-muted-foreground text-xs">{row.original.email}</p>
+        </div>
       </div>
     ),
   },
@@ -158,9 +167,9 @@ export const brandColumns: ColumnDef<BrandDto>[] = [
       <Badge
         variant={
           row.original.approvalStatus === "APPROVED"
-            ? "default"
+            ? "success"
             : row.original.approvalStatus === "PENDING"
-              ? "outline"
+              ? "warning"
               : "destructive"
         }
       >

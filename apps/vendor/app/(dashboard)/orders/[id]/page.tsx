@@ -20,6 +20,7 @@ import { NegotiationStatus } from "@cj/types";
 import { toast } from "sonner";
 
 import { useProposeNegotiation, useVendorOrder } from "@/features/queries";
+import { orderBadge } from "@/lib/status";
 
 const negotiateSchema = z.object({
   proposedAmount: z.coerce.number().min(1, "Amount must be positive"),
@@ -82,7 +83,7 @@ export default function VendorOrderDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="secondary">{order.status}</Badge>
+          <Badge variant={orderBadge(order.status)}>{order.status}</Badge>
           {canNegotiate && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>

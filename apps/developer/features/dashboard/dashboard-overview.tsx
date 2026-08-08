@@ -51,7 +51,7 @@ function StatSkeleton() {
 
 function StatusBadge({ status }: { status: string }) {
   return (
-    <Badge variant={status === "UP" ? "default" : "destructive"}>{status}</Badge>
+    <Badge variant={status === "UP" ? "success" : "destructive"}>{status}</Badge>
   );
 }
 
@@ -81,24 +81,28 @@ export function DashboardOverview() {
             value={<StatusBadge status={health?.database ?? "DOWN"} />}
             icon={Database}
             hint="PostgreSQL connectivity"
+            tone="green"
           />
           <StatCard
             label="Redis / Cache"
             value={<StatusBadge status={health?.redis ?? "DOWN"} />}
             icon={Server}
             hint="Cache + queues backend"
+            tone="blue"
           />
           <StatCard
             label="Uptime"
             value={`${Math.round((health?.uptimeSeconds ?? 0) / 3600)}h`}
             icon={Timer}
             hint="Process uptime"
+            tone="violet"
           />
           <StatCard
             label="Failed Jobs"
             value={failedJobs}
             icon={Activity}
             hint="Across all queues"
+            tone={failedJobs > 0 ? "rose" : "green"}
           />
         </div>
       )}
@@ -165,7 +169,9 @@ export function DashboardOverview() {
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-medium">Recent Errors</h2>
               <Link href="/error-logs">
-                <Badge variant="secondary">{errors?.length ?? 0}</Badge>
+                <Badge variant={(errors?.length ?? 0) > 0 ? "destructive" : "secondary"}>
+                  {errors?.length ?? 0}
+                </Badge>
               </Link>
             </div>
             {isError ? (
@@ -248,7 +254,7 @@ export function DashboardOverview() {
                       <span className="text-muted-foreground text-xs">
                         {b.fileSizeMb != null ? `${b.fileSizeMb} MB` : "—"}
                       </span>
-                      <Badge variant={b.status === "SUCCESS" ? "default" : b.status === "FAILED" ? "destructive" : "outline"}>
+                      <Badge variant={b.status === "SUCCESS" ? "success" : b.status === "FAILED" ? "destructive" : "warning"}>
                         {b.status}
                       </Badge>
                     </div>

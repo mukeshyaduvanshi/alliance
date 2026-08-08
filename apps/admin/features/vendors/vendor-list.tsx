@@ -24,6 +24,8 @@ import {
 import type { VendorDto } from "@cj/types";
 import { formatDateTime } from "@cj/utils";
 
+import { InitialsAvatar } from "@/components/initials-avatar";
+
 import { useApproveVendor, useRejectVendor, useVendors } from "./queries";
 
 function VendorApprovalDialog({
@@ -101,7 +103,11 @@ function VendorApprovalDialog({
 function ApprovalActions({ vendor }: { vendor: VendorDto }) {
   const [decision, setDecision] = React.useState<"APPROVE" | "REJECT" | null>(null);
   if (vendor.approvalStatus !== "PENDING") {
-    return <Badge variant="secondary">{vendor.approvalStatus}</Badge>;
+    return (
+      <Badge variant={vendor.approvalStatus === "APPROVED" ? "success" : "destructive"}>
+        {vendor.approvalStatus}
+      </Badge>
+    );
   }
   return (
     <div className="flex gap-1">
@@ -128,11 +134,14 @@ const columns: ColumnDef<VendorDto>[] = [
     accessorKey: "vendorName",
     header: "Vendor",
     cell: ({ row }) => (
-      <Link href={`/vendors/${row.original.id}`}>
-        <p className="font-medium hover:underline">{row.original.vendorName}</p>
-        {row.original.email && (
-          <p className="text-muted-foreground text-xs">{row.original.email}</p>
-        )}
+      <Link href={`/vendors/${row.original.id}`} className="flex items-center gap-3">
+        <InitialsAvatar name={row.original.vendorName} tone={2} />
+        <span>
+          <span className="font-medium hover:underline">{row.original.vendorName}</span>
+          {row.original.email && (
+            <span className="text-muted-foreground block text-xs">{row.original.email}</span>
+          )}
+        </span>
       </Link>
     ),
   },
@@ -156,9 +165,9 @@ const columns: ColumnDef<VendorDto>[] = [
       <Badge
         variant={
           row.original.approvalStatus === "APPROVED"
-            ? "default"
+            ? "success"
             : row.original.approvalStatus === "PENDING"
-              ? "outline"
+              ? "warning"
               : "destructive"
         }
       >

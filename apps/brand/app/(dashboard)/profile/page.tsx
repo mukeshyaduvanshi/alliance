@@ -14,6 +14,7 @@ import { PageHeader } from "@cj/ui";
 import { toast } from "sonner";
 
 import { useBrandProfile, useUpdateBrandProfile } from "@/features/queries";
+import { approvalBadge } from "@/lib/status";
 
 const profileSchema = z.object({
   brandName: z.string().min(2, "Brand name is required"),
@@ -72,8 +73,10 @@ export default function BrandProfilePage() {
       />
 
       <div className="flex items-center gap-2">
-        <Badge variant="secondary">{profile.approvalStatus}</Badge>
-        {profile.isActive && <Badge variant="outline">Active</Badge>}
+        <Badge variant={approvalBadge(profile.approvalStatus)}>
+          {profile.approvalStatus}
+        </Badge>
+        {profile.isActive && <Badge variant="success">Active</Badge>}
       </div>
 
       <Form {...form}>

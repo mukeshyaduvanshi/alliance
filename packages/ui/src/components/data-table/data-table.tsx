@@ -116,49 +116,58 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      <div className="flex items-center justify-end gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            if (isServerPaged) {
-              onPageChange?.(Math.max(1, pageIndex));
-            } else {
-              table.previousPage();
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-muted-foreground text-sm">
+          {isServerPaged
+            ? `${pageIndex * pageSize - (pageSize - 1)}–${Math.min(
+                pageIndex * pageSize,
+                totalRows ?? 0
+              )} of ${totalRows ?? 0}`
+            : `${table.getFilteredRowModel().rows.length} row(s)`}
+        </span>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (isServerPaged) {
+                onPageChange?.(Math.max(1, pageIndex));
+              } else {
+                table.previousPage();
+              }
+            }}
+            disabled={
+              isServerPaged
+                ? pageIndex <= 1
+                : !table.getCanPreviousPage()
             }
-          }}
-          disabled={
-            isServerPaged
-              ? pageIndex <= 1
-              : !table.getCanPreviousPage()
-          }
-        >
-          Previous
-        </Button>
-        {!isServerPaged && (
-          <span className="text-muted-foreground text-sm">
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
-          </span>
-        )}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            if (isServerPaged) {
-              onPageChange?.(pageIndex + 1);
-            } else {
-              table.nextPage();
+          >
+            Previous
+          </Button>
+          {isServerPaged && (
+            <span className="text-muted-foreground text-sm">
+              Page {pageIndex} of {Math.max(1, Math.ceil((totalRows ?? 0) / pageSize))}
+            </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (isServerPaged) {
+                onPageChange?.(pageIndex + 1);
+              } else {
+                table.nextPage();
+              }
+            }}
+            disabled={
+              isServerPaged
+                ? pageIndex * pageSize >= (totalRows ?? 0)
+                : !table.getCanNextPage()
             }
-          }}
-          disabled={
-            isServerPaged
-              ? pageIndex * pageSize >= (totalRows ?? 0)
-              : !table.getCanNextPage()
-          }
-        >
-          Next
-        </Button>
+          >
+            Next
+          </Button>
+        </div>
       </div>
     </div>
   );

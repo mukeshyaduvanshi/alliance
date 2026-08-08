@@ -11,7 +11,6 @@ import type { PurchaseOrderDto } from "@cj/types";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { useBrandPurchaseOrders } from "@/features/queries";
-
 const columns: ColumnDef<PurchaseOrderDto, unknown>[] = [
   {
     accessorKey: "poNumber",
@@ -61,9 +60,9 @@ const columns: ColumnDef<PurchaseOrderDto, unknown>[] = [
     header: "Status",
     cell: ({ row }) =>
       row.original.isActive ? (
-        <Badge variant="secondary">Active</Badge>
+        <Badge variant="success">Active</Badge>
       ) : (
-        <Badge variant="outline">Inactive</Badge>
+        <Badge variant="secondary">Inactive</Badge>
       ),
   },
   {

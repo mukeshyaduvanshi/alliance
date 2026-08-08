@@ -126,10 +126,10 @@ export function Topbar({
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="h-8 gap-2 px-2"
+              className="h-9 gap-2 px-2"
               aria-label="User menu"
             >
-              <span className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-full text-xs font-semibold uppercase">
+              <span className="from-primary to-emerald-500 bg-gradient-to-br flex size-7 items-center justify-center rounded-full text-xs font-semibold text-primary-foreground shadow-sm uppercase">
                 {(user?.name ?? "U").charAt(0)}
               </span>
               <span className="hidden text-sm sm:block">
