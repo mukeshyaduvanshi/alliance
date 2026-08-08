@@ -1,4 +1,8 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
@@ -59,5 +63,44 @@ export class UserService {
 
     const safe = users.map(({ passwordHash: _, ...u }) => u);
     return buildPaginated(safe, total, p, size);
+  }
+
+  async me(tenantId: string, userId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, tenantId, deletedAt: null },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: { permission: true },
+            },
+          },
+        },
+      },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const permissions = (user.role?.rolePermissions ?? []).map(
+      (rp) => ({
+        module: rp.permission.module,
+        action: rp.permission.action,
+      }),
+    );
+
+    const assignedBrands = await this.prisma.brand.findMany({
+      where: { tenantId, assignedKamId: userId, deletedAt: null },
+      select: { id: true },
+    });
+
+    return {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      roleId: user.roleId,
+      roleName: user.role?.name ?? null,
+      isSuperAdmin: user.isSuperAdmin,
+      permissions,
+      assignedBrandIds: assignedBrands.map((b) => b.id),
+    };
   }
 }

@@ -97,18 +97,66 @@ export class WorkflowInstanceService {
     return instance;
   }
 
-  async getPending(tenantId: string, userRoleId: string) {
+  async getPending(
+    tenantId: string,
+    userRoleId: string,
+    page?: string | number,
+    pageSize?: string | number,
+  ) {
+    const { page: p, pageSize: size } = getPagination(page, pageSize);
+
     const instances = await this.prisma.workflowInstance.findMany({
       where: { tenantId, status: 'PENDING' },
       include: { workflowRule: { include: { steps: true } } },
     });
 
     // Filter to instances where the CURRENT step's approver role matches this user's role
-    return instances.filter((instance) => {
+    const filtered = instances.filter((instance) => {
       const currentStep = instance.workflowRule.steps.find(
         (s) => s.stepOrder === instance.currentStepOrder,
       );
       return currentStep?.approverRoleId === userRoleId;
+    });
+
+    const total = filtered.length;
+    const start = (p - 1) * size;
+
+    return buildPaginated(filtered.slice(start, start + size), total, p, size);
+  }
+
+  async escalate(
+    tenantId: string,
+    instanceId: string,
+    userId: string,
+    userRoleId: string,
+    remarks?: string,
+  ) {
+    const instance = await this.getActiveInstance(tenantId, instanceId);
+    const currentStep = await this.getCurrentStep(
+      instance.workflowRuleId,
+      instance.currentStepOrder,
+    );
+
+    if (!currentStep) {
+      throw new BadRequestException('Invalid workflow state');
+    }
+
+    await this.prisma.approvalAction.create({
+      data: {
+        workflowInstanceId: instance.id,
+        workflowStepId: currentStep.id,
+        actionByUserId: userId,
+        decision: 'ESCALATED',
+        remarks,
+      },
+    });
+
+    return this.prisma.workflowInstance.update({
+      where: { id: instance.id },
+      data: {
+        escalatedByRoleId: userRoleId,
+        escalatedAt: new Date(),
+      },
     });
   }
 

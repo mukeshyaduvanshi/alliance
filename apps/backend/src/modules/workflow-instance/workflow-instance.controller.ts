@@ -43,10 +43,16 @@ export class WorkflowInstanceController {
   }
 
   @Get('pending')
-  getPending(@Req() req: any) {
+  getPending(
+    @Req() req: any,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
     return this.workflowInstanceService.getPending(
       req.user.tenantId,
       req.user.roleId,
+      page,
+      pageSize,
     );
   }
 
@@ -77,6 +83,21 @@ export class WorkflowInstanceController {
     @Body() dto: ApprovalActionDto,
   ) {
     return this.workflowInstanceService.reject(
+      req.user.tenantId,
+      id,
+      req.user.userId,
+      req.user.roleId,
+      dto.remarks,
+    );
+  }
+
+  @Post(':id/escalate')
+  escalate(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: ApprovalActionDto,
+  ) {
+    return this.workflowInstanceService.escalate(
       req.user.tenantId,
       id,
       req.user.userId,

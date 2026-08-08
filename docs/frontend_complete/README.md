@@ -97,9 +97,16 @@ Browser testing ke liye: **[testing-guide.md](./testing-guide.md)**
 | # | Module | Status |
 |---|--------|--------|
 | 1 | App shell + login | ✅ Done |
-| 2 | Dashboard | ⬜ Pending (placeholder only) |
-| 3 | Brands / Orders / Approvals | ⬜ Pending |
-| 4 | SLA & Alerts | ⬜ Pending |
+| 2 | Dashboard | ✅ Done (StatCards + recent orders + quick approvals + alerts) |
+| 3 | My Brands | ✅ Done (assigned list + detail tabs: overview/business-model/POs/orders) |
+| 4 | Orders + Negotiations | ✅ Done (status tabs, detail, assign vendor, artwork upload, respond) |
+| 5 | Approvals + Escalate | ✅ Done (pending approve/reject/escalate + history tabs) |
+| 6 | Vendors | ✅ Done (list + detail + order stats) |
+| 7 | SLA & Alerts | ✅ Done (SLA rules + breached orders + alerts resolve) |
+| 8 | Notifications | ✅ Done (read/unread + mark all + layout bell badge) |
+| — | Permission gating | ✅ Done (`GET /users/me` session enrich, `usePermission`, AccessDenied, sidebar gated) |
+
+> **F-6 complete (Aug 08):** backend `GET /users/me`, `workflow-instances/pending` pagination (filter-then-paginate fix), `POST /workflow-instances/:id/escalate` (escalatedByRoleId/escalatedAt) — sab verified against live backend. Deps added: `@tanstack/react-table`, `sonner`, `react-hook-form`, `@hookform/resolvers`. Playwright/browser test pending (next session). Full log in `manager-implementation-plan.md`.
 
 ## Phase F-7: Developer Panel (apps/developer)
 | # | Module | Status |

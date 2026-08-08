@@ -33,4 +33,9 @@ export class UserController {
   ) {
     return this.userService.findAll(req.user.tenantId, page, pageSize);
   }
+
+  @Get('me')
+  me(@Req() req: any) {
+    return this.userService.me(req.user.tenantId, req.user.userId);
+  }
 }

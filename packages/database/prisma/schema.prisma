@@ -300,6 +300,9 @@ model WorkflowInstance {
   status           WorkflowInstanceStatus @default(PENDING)
   currentStepOrder Int                    @default(1) @map("current_step_order")
 
+  escalatedByRoleId String?   @map("escalated_by_role_id")
+  escalatedAt       DateTime? @map("escalated_at")
+
   initiatedById String? @map("initiated_by_id")
 
   createdAt DateTime @default(now()) @map("created_at")
