@@ -354,6 +354,65 @@ export class BrandService {
     };
   }
 
+  async brandRefresh(refreshToken: string) {
+    let payload: {
+      sub: string;
+      type: string;
+    };
+    try {
+      payload = await this.jwtService.verifyAsync(refreshToken);
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (payload.type !== 'brand') {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const brand = await this.prisma.brand.findUnique({
+      where: { id: payload.sub },
+    });
+    if (!brand || !brand.isActive) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const tokenPayload = {
+      sub: brand.id,
+      brandId: brand.id,
+      tenantId: brand.tenantId,
+      type: 'brand',
+      role: 'BRAND',
+      email: brand.email,
+    };
+    const accessToken = this.jwtService.sign(tokenPayload, {
+      expiresIn: '15m',
+    });
+    const newRefreshToken = this.jwtService.sign(tokenPayload, {
+      expiresIn: '7d',
+    });
+
+    return {
+      accessToken,
+      refreshToken: newRefreshToken,
+      brand: {
+        id: brand.id,
+        brandName: brand.brandName,
+        email: brand.email,
+        tenantId: brand.tenantId,
+      },
+      user: {
+        id: brand.id,
+        fullName: brand.brandName,
+        email: brand.email,
+        roleId: null,
+        roleName: 'BRAND',
+        tenantId: brand.tenantId,
+        isSuperAdmin: false,
+        brandId: brand.id,
+      },
+    };
+  }
+
   async getBrandProfile(brandId: string) {
     return this.findOne(
       (await this.prisma.brand.findUnique({ where: { id: brandId } }))!

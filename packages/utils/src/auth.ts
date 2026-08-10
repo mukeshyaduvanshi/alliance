@@ -1,5 +1,6 @@
 export interface AuthSession {
   accessToken: string;
+  refreshToken?: string;
   user: {
     id: string;
     fullName: string;
@@ -64,6 +65,25 @@ export function isAuthenticated(portal?: string): boolean {
 
 export function getAccessToken(portal?: string): string | null {
   return getSession(portal)?.accessToken ?? null;
+}
+
+export function getRefreshToken(portal?: string): string | null {
+  return getSession(portal)?.refreshToken ?? null;
+}
+
+export function updateSessionTokens(
+  accessToken: string,
+  refreshToken?: string,
+  portal?: string
+): void {
+  if (typeof window === "undefined") return;
+  const session = getSession(portal);
+  if (!session) return;
+  session.accessToken = accessToken;
+  if (refreshToken) {
+    session.refreshToken = refreshToken;
+  }
+  saveSession(session, portal);
 }
 
 export function getTenantId(portal?: string): string | null {

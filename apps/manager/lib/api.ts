@@ -1,9 +1,19 @@
 import { ApiClient } from "@cj/utils";
 
-import { getAccessToken, clearSession } from "@/lib/session";
+import {
+  getAccessToken,
+  getRefreshToken,
+  updateTokens,
+  clearSession,
+} from "@/lib/session";
 
 export const api = new ApiClient({
   getAccessToken,
+  getRefreshToken,
+  refreshPath: "/auth/refresh",
+  onTokensRefreshed: (accessToken, refreshToken) => {
+    updateTokens(accessToken, refreshToken);
+  },
   onUnauthorized: () => {
     clearSession();
     if (typeof window !== "undefined") {

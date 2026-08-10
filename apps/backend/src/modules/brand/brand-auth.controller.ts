@@ -11,6 +11,7 @@ import { BrandJwtAuthGuard } from './guards/brand-jwt-auth.guard';
 import { BrandService } from './brand.service';
 import { BrandLoginDto } from './dto/brand-login.dto';
 import { UpdateBrandProfileDto } from './dto/update-brand-profile.dto';
+import { RefreshTokenDto } from '../auth/dto/refresh-token.dto';
 
 @Controller('brand-auth')
 export class BrandAuthController {
@@ -19,6 +20,11 @@ export class BrandAuthController {
   @Post('login')
   login(@Body() dto: BrandLoginDto, @Req() req: any) {
     return this.brandService.brandLogin(dto, req.ip, req.headers['user-agent']);
+  }
+
+  @Post('refresh')
+  refresh(@Body() dto: RefreshTokenDto) {
+    return this.brandService.brandRefresh(dto.refreshToken);
   }
 
   @UseGuards(BrandJwtAuthGuard)

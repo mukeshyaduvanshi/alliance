@@ -3,6 +3,8 @@ import {
   saveSession as saveSessionRaw,
   clearSession as clearSessionRaw,
   getAccessToken as getAccessTokenRaw,
+  getRefreshToken as getRefreshTokenRaw,
+  updateSessionTokens as updateTokensRaw,
   type AuthSession,
 } from "@cj/utils";
 
@@ -25,6 +27,14 @@ export function clearSession() {
 
 export function getAccessToken() {
   return getAccessTokenRaw(PORTAL);
+}
+
+export function getRefreshToken() {
+  return getRefreshTokenRaw(PORTAL);
+}
+
+export function updateTokens(accessToken: string, refreshToken?: string) {
+  updateTokensRaw(accessToken, refreshToken, PORTAL);
 }
 
 export { getSession };

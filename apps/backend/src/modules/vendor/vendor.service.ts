@@ -302,6 +302,65 @@ export class VendorService {
     };
   }
 
+  async vendorRefresh(refreshToken: string) {
+    let payload: {
+      sub: string;
+      type: string;
+    };
+    try {
+      payload = await this.jwtService.verifyAsync(refreshToken);
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (payload.type !== 'vendor') {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const vendor = await this.prisma.vendor.findUnique({
+      where: { id: payload.sub },
+    });
+    if (!vendor || !vendor.isActive) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const tokenPayload = {
+      sub: vendor.id,
+      vendorId: vendor.id,
+      tenantId: vendor.tenantId,
+      type: 'vendor',
+      role: 'VENDOR',
+      email: vendor.email,
+    };
+    const accessToken = this.jwtService.sign(tokenPayload, {
+      expiresIn: '15m',
+    });
+    const newRefreshToken = this.jwtService.sign(tokenPayload, {
+      expiresIn: '7d',
+    });
+
+    return {
+      accessToken,
+      refreshToken: newRefreshToken,
+      vendor: {
+        id: vendor.id,
+        vendorName: vendor.vendorName,
+        email: vendor.email,
+        tenantId: vendor.tenantId,
+      },
+      user: {
+        id: vendor.id,
+        fullName: vendor.vendorName,
+        email: vendor.email,
+        roleId: null,
+        roleName: 'VENDOR',
+        tenantId: vendor.tenantId,
+        isSuperAdmin: false,
+        vendorId: vendor.id,
+      },
+    };
+  }
+
   async getVendorProfile(vendorId: string) {
     const vendor = await this.prisma.vendor.findUnique({
       where: { id: vendorId },

@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { VendorJwtAuthGuard } from './guards/vendor-jwt-auth.guard';
 import { VendorService } from './vendor.service';
 import { VendorLoginDto } from './dto/vendor-login.dto';
+import { RefreshTokenDto } from '../auth/dto/refresh-token.dto';
 
 @Controller('vendor-auth')
 export class VendorAuthController {
@@ -14,6 +15,11 @@ export class VendorAuthController {
       req.ip,
       req.headers['user-agent'],
     );
+  }
+
+  @Post('refresh')
+  refresh(@Body() dto: RefreshTokenDto) {
+    return this.vendorService.vendorRefresh(dto.refreshToken);
   }
 
   @UseGuards(VendorJwtAuthGuard)
