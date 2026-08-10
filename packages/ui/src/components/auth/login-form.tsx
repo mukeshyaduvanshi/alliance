@@ -33,6 +33,7 @@ interface LoginFormProps {
   loginEndpoint: string;
   redirectTo?: string;
   onSuccess?: (data: Record<string, unknown>) => void;
+  footer?: React.ReactNode;
   className?: string;
 }
 
@@ -41,6 +42,7 @@ export function LoginForm({
   loginEndpoint,
   redirectTo = "/",
   onSuccess,
+  footer,
   className,
 }: LoginFormProps) {
   const router = useRouter();
@@ -145,6 +147,7 @@ export function LoginForm({
                 {loading && <Loader2 className="animate-spin" />}
                 Sign in
               </Button>
+              {footer}
             </form>
           </Form>
         </CardContent>
