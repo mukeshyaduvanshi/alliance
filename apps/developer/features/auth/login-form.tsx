@@ -79,6 +79,8 @@ export function LoginForm() {
 
       const data = (await res.json()) as AuthSession;
 
+      saveSession(data as AuthSession);
+
       let enriched: Partial<MeResponse> = {};
       try {
         const me = await api.get<MeResponse>("/users/me");

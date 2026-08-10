@@ -18,7 +18,11 @@ async function bootstrap() {
     credentials: true,
   });
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
   );
 
   const prismaService = app.get(PrismaService);

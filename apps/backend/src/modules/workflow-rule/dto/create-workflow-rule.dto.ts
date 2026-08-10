@@ -1,4 +1,14 @@
-import { IsString, IsOptional, IsBoolean, IsInt, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
+import { CreateWorkflowStepDto } from './create-workflow-step.dto';
 
 export class CreateWorkflowRuleDto {
   @IsString()
@@ -17,6 +27,12 @@ export class CreateWorkflowRuleDto {
 
   @IsOptional()
   @IsInt()
-  @Min(1)
+  @Min(0)
   escalationHours?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateWorkflowStepDto)
+  steps?: CreateWorkflowStepDto[];
 }

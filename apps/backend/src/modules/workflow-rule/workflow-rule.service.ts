@@ -26,8 +26,16 @@ export class WorkflowRuleService {
         'A workflow rule already exists for this module',
       );
     }
+    const { steps, ...ruleData } = dto;
     return this.prisma.workflowRule.create({
-      data: { tenantId, ...dto },
+      data: {
+        tenantId,
+        ...ruleData,
+        ...(steps && steps.length > 0
+          ? { steps: { create: steps } }
+          : {}),
+      },
+      include: { steps: { orderBy: { stepOrder: 'asc' } } },
     });
   }
 
@@ -74,7 +82,8 @@ export class WorkflowRuleService {
 
   async update(tenantId: string, id: string, dto: UpdateWorkflowRuleDto) {
     await this.findOne(tenantId, id);
-    return this.prisma.workflowRule.update({ where: { id }, data: dto });
+    const { steps, ...ruleData } = dto;
+    return this.prisma.workflowRule.update({ where: { id }, data: ruleData });
   }
 
   async remove(tenantId: string, id: string) {
