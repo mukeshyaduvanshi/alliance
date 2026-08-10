@@ -45,7 +45,10 @@ export class RoleService {
         orderBy: { createdAt: 'desc' },
         skip,
         take,
-        include: { rolePermissions: true },
+        include: {
+          rolePermissions: true,
+          parentRole: { select: { id: true, name: true } },
+        },
       }),
       this.prisma.role.count({ where }),
     ]);

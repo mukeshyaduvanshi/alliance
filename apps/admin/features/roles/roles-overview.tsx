@@ -48,6 +48,7 @@ import {
   FormLabel,
   FormMessage,
   Input,
+  Label,
   LoadingState,
   PageHeader,
   Select,
@@ -196,7 +197,7 @@ function RoleFormDialog({
                       value={field.value || undefined}
                       onValueChange={field.onChange}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="No parent (top level)" />
                       </SelectTrigger>
                       <SelectContent>
@@ -215,7 +216,10 @@ function RoleFormDialog({
               )}
             />
             <DialogFooter>
-              <Button type="submit" disabled={createRole.isPending || updateRole.isPending}>
+              <Button
+                type="submit"
+                disabled={createRole.isPending || updateRole.isPending}
+              >
                 {role ? "Save Changes" : "Create Role"}
               </Button>
             </DialogFooter>
@@ -258,22 +262,24 @@ function CloneRoleDialog({ role }: { role: RoleDto }) {
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-          <FormItem>
-            <FormLabel>New Role Name</FormLabel>
-            <FormControl>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Senior Operation Manager"
-              />
-            </FormControl>
-          </FormItem>
+          <div className="grid gap-2">
+            <Label htmlFor="clone-role-name">New Role Name</Label>
+            <Input
+              id="clone-role-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Senior Operation Manager"
+            />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={handleClone} disabled={!name.trim() || cloneRole.isPending}>
+          <Button
+            onClick={handleClone}
+            disabled={!name.trim() || cloneRole.isPending}
+          >
             {cloneRole.isPending ? "Cloning..." : "Clone Role"}
           </Button>
         </DialogFooter>
@@ -338,9 +344,13 @@ function RoleActions({ role }: { role: RoleDto }) {
         id: role.id,
         status: role.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
       });
-      toast.success(`Role ${role.status === "ACTIVE" ? "deactivated" : "activated"}`);
+      toast.success(
+        `Role ${role.status === "ACTIVE" ? "deactivated" : "activated"}`,
+      );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update status");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update status",
+      );
     }
   }
 
@@ -399,7 +409,9 @@ const columns: ColumnDef<RoleDto>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => (
-      <Badge variant={row.original.status === "ACTIVE" ? "default" : "secondary"}>
+      <Badge
+        variant={row.original.status === "ACTIVE" ? "default" : "secondary"}
+      >
         {row.original.status}
       </Badge>
     ),
