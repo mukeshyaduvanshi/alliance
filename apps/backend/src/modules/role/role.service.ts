@@ -45,6 +45,7 @@ export class RoleService {
         orderBy: { createdAt: 'desc' },
         skip,
         take,
+        include: { rolePermissions: true },
       }),
       this.prisma.role.count({ where }),
     ]);

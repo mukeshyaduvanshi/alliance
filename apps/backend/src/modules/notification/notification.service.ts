@@ -147,6 +147,20 @@ export class NotificationService {
   // ===== Email via Resend =====
 
   async sendEmail(tenantId: string, to: string, subject: string, html: string) {
+    if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
+      await this.prisma.emailLog.create({
+        data: {
+          tenantId,
+          toAddress: to,
+          subject,
+          status: 'SKIPPED',
+          errorMessage:
+            'Email not sent — RESEND_API_KEY / RESEND_FROM_EMAIL not configured',
+        },
+      });
+      return;
+    }
+
     try {
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',

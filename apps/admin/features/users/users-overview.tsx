@@ -27,6 +27,7 @@ import {
   FormLabel,
   FormMessage,
   Input,
+  Label,
   LoadingState,
   PageHeader,
   Select,
@@ -35,7 +36,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@cj/ui";
-import type { CreateUserDto, UpdateUserDto, UserDto, UserStatus } from "@cj/types";
+import type {
+  CreateUserDto,
+  UpdateUserDto,
+  UserDto,
+  UserStatus,
+} from "@cj/types";
 import { UserStatus as UserStatusEnum } from "@cj/types";
 import { formatDateTime } from "@cj/utils";
 
@@ -69,7 +75,7 @@ function RoleSelect({
   const { data: roles, isLoading } = useRoles();
   return (
     <Select value={value || undefined} onValueChange={onChange}>
-      <SelectTrigger>
+      <SelectTrigger className="w-full">
         <SelectValue placeholder="Select role" />
       </SelectTrigger>
       <SelectContent>
@@ -96,7 +102,7 @@ function StatusSelect({
 }) {
   return (
     <Select value={value} onValueChange={(v) => onChange(v as UserStatus)}>
-      <SelectTrigger>
+      <SelectTrigger className="w-full">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -153,19 +159,26 @@ function EditUserDialog({
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <FormLabel>Full Name</FormLabel>
-            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            <Label>Full Name</Label>
+            <Input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
-            <FormLabel>Phone</FormLabel>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 ..." />
+            <Label>Phone</Label>
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+91 ..."
+            />
           </div>
           <div className="space-y-2">
-            <FormLabel>Role</FormLabel>
+            <Label>Role</Label>
             <RoleSelect value={roleId} onChange={setRoleId} />
           </div>
           <div className="space-y-2">
-            <FormLabel>Status</FormLabel>
+            <Label>Status</Label>
             <StatusSelect value={status} onChange={setStatus} />
           </div>
         </div>
@@ -202,7 +215,9 @@ function ResetPasswordDialog({
       setPassword("");
       onOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to reset password");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to reset password",
+      );
     }
   }
 
@@ -216,7 +231,7 @@ function ResetPasswordDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <FormLabel>New Password</FormLabel>
+          <Label>New Password</Label>
           <Input
             type="password"
             value={password}
@@ -228,7 +243,10 @@ function ResetPasswordDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!password || resetPassword.isPending}>
+          <Button
+            onClick={handleSubmit}
+            disabled={!password || resetPassword.isPending}
+          >
             {resetPassword.isPending ? "Resetting..." : "Reset Password"}
           </Button>
         </DialogFooter>
@@ -253,28 +271,50 @@ function UserActions({ user }: { user: UserDto }) {
               : UserStatusEnum.ACTIVE,
         },
       });
-      toast.success(user.status === "ACTIVE" ? "User deactivated" : "User activated");
+      toast.success(
+        user.status === "ACTIVE" ? "User deactivated" : "User activated",
+      );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update status");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update status",
+      );
     }
   }
 
   return (
     <div className="flex items-center justify-end gap-1">
-      <Button variant="ghost" size="icon-sm" title="Edit" onClick={() => setEditOpen(true)}>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        title="Edit"
+        onClick={() => setEditOpen(true)}
+      >
         <Pencil className="size-4" />
       </Button>
-      <Button variant="ghost" size="icon-sm" title="Reset password" onClick={() => setResetOpen(true)}>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        title="Reset password"
+        onClick={() => setResetOpen(true)}
+      >
         <KeyRound className="size-4" />
       </Button>
       <Button variant="ghost" size="sm" onClick={handleToggleStatus}>
         {user.status === "ACTIVE" ? "Deactivate" : "Activate"}
       </Button>
       {editOpen && (
-        <EditUserDialog user={user} open={editOpen} onOpenChange={setEditOpen} />
+        <EditUserDialog
+          user={user}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+        />
       )}
       {resetOpen && (
-        <ResetPasswordDialog user={user} open={resetOpen} onOpenChange={setResetOpen} />
+        <ResetPasswordDialog
+          user={user}
+          open={resetOpen}
+          onOpenChange={setResetOpen}
+        />
       )}
     </div>
   );
@@ -379,10 +419,7 @@ function CreateUserDialog() {
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="fullName"
@@ -403,7 +440,11 @@ function CreateUserDialog() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="user@colorjet.com" {...field} />
+                    <Input
+                      type="email"
+                      placeholder="user@colorjet.com"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -429,7 +470,11 @@ function CreateUserDialog() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Min 6 characters" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="Min 6 characters"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

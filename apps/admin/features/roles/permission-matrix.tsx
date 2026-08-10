@@ -66,7 +66,6 @@ export function PermissionMatrix() {
     : false;
 
   function togglePermission(permissionId: string) {
-    if (isSystemRole) return;
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(permissionId)) next.delete(permissionId);
@@ -76,7 +75,7 @@ export function PermissionMatrix() {
   }
 
   async function handleSave() {
-    if (!role || isSystemRole) return;
+    if (!role) return;
     try {
       await assignPermissions.mutateAsync({
         id: role.id,
@@ -115,7 +114,7 @@ export function PermissionMatrix() {
             {isSystemRole && (
               <Badge variant="secondary">
                 <ShieldCheck className="mr-1 size-3" />
-                System role — read only
+                System role
               </Badge>
             )}
           </div>
@@ -155,7 +154,6 @@ export function PermissionMatrix() {
                                   <Checkbox
                                     checked={selected.has(perm.id)}
                                     onCheckedChange={() => togglePermission(perm.id)}
-                                    disabled={isSystemRole}
                                   />
                                 )}
                               </td>
@@ -168,7 +166,30 @@ export function PermissionMatrix() {
                 </table>
               </div>
 
-              <div className="flex justify-end gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    setSelected(
+                      new Set(
+                        Object.values(permissions ?? {})
+                          .flat()
+                          .map((p) => p.id)
+                      )
+                    )
+                  }
+                >
+                  Select All
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelected(new Set())}
+                  disabled={selected.size === 0}
+                >
+                  Clear All
+                </Button>
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -180,13 +201,13 @@ export function PermissionMatrix() {
                       setSelected(new Set());
                     }
                   }}
-                  disabled={!dirty || isSystemRole}
+                  disabled={!dirty}
                 >
                   Reset
                 </Button>
                 <Button
                   onClick={handleSave}
-                  disabled={!dirty || isSystemRole || assignPermissions.isPending}
+                  disabled={!dirty || assignPermissions.isPending}
                 >
                   <CheckCircle2 className="size-4" />
                   {assignPermissions.isPending ? "Saving..." : "Save Permissions"}
