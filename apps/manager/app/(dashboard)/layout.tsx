@@ -11,7 +11,7 @@ import { managerNavItems, type NavItem as ManagerNavItem } from "@/lib/navigatio
 
 function isAllowed(item: ManagerNavItem, session: ReturnType<typeof getSession>): boolean {
   if (!session) return false;
-  if (session.user?.isSuperAdmin) return true;
+  if (session.user?.isAdmin) return true;
   if (item.permission) {
     return hasPermission(item.permission.module, item.permission.action, session);
   }

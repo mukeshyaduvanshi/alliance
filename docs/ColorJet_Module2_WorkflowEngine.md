@@ -150,7 +150,7 @@ model ApprovalAction {
 **Design notes:**
 - **Polymorphic reference** (`entityType` + `entityId`, no FK) — deliberate choice. Once Brand/Vendor/Order models exist (Module 3, 4), a real FK per entity type would mean a separate `WorkflowInstance` variant per module. Keeping it generic means this table never needs to change again.
 - **Steps tied to Role, not User** — if the Business Head changes next month, the workflow doesn't break; whoever holds that role approves.
-- **`escalationRoleId` per step** — different steps can escalate to different roles (e.g. Step 1 escalates to Step 2's approver, Step 2 escalates to Super Admin).
+- **`escalationRoleId` per step** — different steps can escalate to different roles (e.g. Step 1 escalates to Step 2's approver, Step 2 escalates to Admin).
 - **`ApprovalAction.actionByUserId` is nullable** — system-triggered escalations (via cron job) won't have a human actor.
 
 ---

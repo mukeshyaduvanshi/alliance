@@ -22,7 +22,7 @@ Five Next.js applications, one per portal, all consuming the single shared backe
 
 | App Directory    | Portal                | Primary Audience                             | Subdomain             |
 | ---------------- | --------------------- | -------------------------------------------- | --------------------- |
-| `apps/admin`     | Super Admin Portal    | Super Admin, Business Head, Department Admin | admin.cjalliance.com  |
+| `apps/admin`     | Admin Portal    | Admin, Business Head, Department Admin | admin.cjalliance.com  |
 | `apps/manager`   | KAM / Internal Portal | Operations Head, Manager, Team Leader, KAM   | kam.cjalliance.com    |
 | `apps/brand`     | Brand Portal          | Brand users (self-serve)                     | brand.cjalliance.com  |
 | `apps/vendor`    | Vendor Portal         | Vendor users (self-serve)                    | vendor.cjalliance.com |
@@ -49,11 +49,11 @@ Every portal must provide:
 
 ## 4. Admin Portal (`apps/admin`)
 
-Super Admin + internal hierarchy. **Full control over the whole platform.**
+Admin + internal hierarchy. **Full control over the whole platform.**
 
 ### 4.1 Auth & Onboarding
 
-- Login (password). Super Admin may have elevated 2FA (future).
+- Login (password). Admin may have elevated 2FA (future).
 - Landing page for first-run: create tenant, seed system roles.
 
 ### 4.2 Dashboard

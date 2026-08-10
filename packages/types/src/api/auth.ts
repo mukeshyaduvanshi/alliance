@@ -7,7 +7,7 @@ export interface LoginResponse {
     roleId?: string;
     roleName?: string;
     tenantId?: string;
-    isSuperAdmin?: boolean;
+    isAdmin?: boolean;
     brandId?: string;
     vendorId?: string;
   };

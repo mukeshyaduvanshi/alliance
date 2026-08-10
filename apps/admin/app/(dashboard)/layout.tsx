@@ -24,7 +24,7 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [userName, setUserName] = React.useState("Super Admin");
+  const [userName, setUserName] = React.useState("Admin");
 
   const { data: notifications } = useNotifications(undefined, 1);
 

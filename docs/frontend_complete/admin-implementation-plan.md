@@ -1,6 +1,6 @@
 # Admin Portal Frontend — Implementation Plan (F-3)
 
-> Scope: `apps/admin` — Super Admin Portal
+> Scope: `apps/admin` — Admin Portal
 > Source of truth: `docs/Frontend-PRD.md` §4, `docs/Frontend-TRD.md` §5–§9, backend `apps/backend/src/modules/*`
 > Status: **DRAFT — awaiting approval**
 
@@ -88,7 +88,7 @@ export function makeQueryClient() { return new QueryClient({ defaultOptions: { q
 import { hasPermission } from "@cj/utils";
 export function usePermission(module: string, action: string) { /* session read → boolean */ }
 ```
-(Super Admin → always true, backend bhi bypass karta hai.)
+(Admin → always true, backend bhi bypass karta hai.)
 
 ### `apps/admin/features/auth/login-form.tsx` — already done ✓
 

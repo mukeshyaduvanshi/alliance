@@ -1,4 +1,5 @@
 # Module 1: Core
+
 ## Tenant, User, Role & Permission Management
 
 **Platform:** ColorJet Enterprise
@@ -9,6 +10,7 @@
 ## 1. Scope
 
 This module covers the foundation every other module depends on:
+
 - Tenant (organization) setup
 - User accounts & authentication
 - Dynamic Role management
@@ -85,7 +87,7 @@ model User {
   passwordHash  String?    @map("password_hash")
 
   status        UserStatus @default(ACTIVE)
-  isSuperAdmin  Boolean    @default(false) @map("is_super_admin")
+  isAdmin  Boolean    @default(false) @map("is_super_admin")
 
   lastLoginAt   DateTime?  @map("last_login_at")
   createdAt     DateTime   @default(now()) @map("created_at")
@@ -187,61 +189,67 @@ model RefreshToken {
 ```
 
 **Design notes:**
+
 - `Role.parentRoleId` (self-relation) gives hierarchy support directly — no separate hierarchy table needed
-- `Role.isSystemRole` prevents Super Admin from accidentally deleting critical default roles
+- `Role.isSystemRole` prevents Admin from accidentally deleting critical default roles
 - `Permission` is **global** (not tenant-scoped) since module/action combinations are platform-defined; only `RolePermission` mapping is tenant-scoped (via the Role)
 - Soft delete (`deletedAt`) on Tenant/User/Role — matches your existing pattern, avoids breaking historical audit/order references
-- `User.isSuperAdmin` flag bypasses permission checks entirely in the guard (see Section 4)
+- `User.isAdmin` flag bypasses permission checks entirely in the guard (see Section 4)
 
 ---
 
 ## 3. API Endpoints
 
 ### 3.1 Auth
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/v1/auth/login` | Email/phone + password login |
-| POST | `/api/v1/auth/refresh` | Refresh access token |
-| POST | `/api/v1/auth/logout` | Revoke refresh token |
-| POST | `/api/v1/auth/forgot-password` | Send reset link/OTP |
-| POST | `/api/v1/auth/reset-password` | Reset password with token |
 
-### 3.2 Tenant (Super Admin only)
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/v1/tenants` | List all tenants |
-| POST | `/api/v1/tenants` | Create new tenant |
-| GET | `/api/v1/tenants/:id` | Get tenant details |
-| PATCH | `/api/v1/tenants/:id` | Update tenant |
+| Method | Endpoint                       | Description                  |
+| ------ | ------------------------------ | ---------------------------- |
+| POST   | `/api/v1/auth/login`           | Email/phone + password login |
+| POST   | `/api/v1/auth/refresh`         | Refresh access token         |
+| POST   | `/api/v1/auth/logout`          | Revoke refresh token         |
+| POST   | `/api/v1/auth/forgot-password` | Send reset link/OTP          |
+| POST   | `/api/v1/auth/reset-password`  | Reset password with token    |
+
+### 3.2 Tenant (Admin only)
+
+| Method | Endpoint              | Description        |
+| ------ | --------------------- | ------------------ |
+| GET    | `/api/v1/tenants`     | List all tenants   |
+| POST   | `/api/v1/tenants`     | Create new tenant  |
+| GET    | `/api/v1/tenants/:id` | Get tenant details |
+| PATCH  | `/api/v1/tenants/:id` | Update tenant      |
 | DELETE | `/api/v1/tenants/:id` | Soft-delete tenant |
 
 ### 3.3 User
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/v1/users` | List users (tenant-scoped, paginated) |
-| POST | `/api/v1/users` | Create user |
-| GET | `/api/v1/users/:id` | Get user details |
-| PATCH | `/api/v1/users/:id` | Update user |
-| DELETE | `/api/v1/users/:id` | Soft-delete / deactivate user |
-| PATCH | `/api/v1/users/:id/status` | Activate/Suspend user |
+
+| Method | Endpoint                   | Description                           |
+| ------ | -------------------------- | ------------------------------------- |
+| GET    | `/api/v1/users`            | List users (tenant-scoped, paginated) |
+| POST   | `/api/v1/users`            | Create user                           |
+| GET    | `/api/v1/users/:id`        | Get user details                      |
+| PATCH  | `/api/v1/users/:id`        | Update user                           |
+| DELETE | `/api/v1/users/:id`        | Soft-delete / deactivate user         |
+| PATCH  | `/api/v1/users/:id/status` | Activate/Suspend user                 |
 
 ### 3.4 Role
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/v1/roles` | List roles (tenant-scoped) |
-| POST | `/api/v1/roles` | Create custom role |
-| GET | `/api/v1/roles/:id` | Get role details + permissions |
-| PATCH | `/api/v1/roles/:id` | Update role |
-| DELETE | `/api/v1/roles/:id` | Delete role (blocked if `isSystemRole`) |
-| POST | `/api/v1/roles/:id/clone` | Clone role with its permissions |
-| PATCH | `/api/v1/roles/:id/status` | Activate/Deactivate role |
+
+| Method | Endpoint                   | Description                             |
+| ------ | -------------------------- | --------------------------------------- |
+| GET    | `/api/v1/roles`            | List roles (tenant-scoped)              |
+| POST   | `/api/v1/roles`            | Create custom role                      |
+| GET    | `/api/v1/roles/:id`        | Get role details + permissions          |
+| PATCH  | `/api/v1/roles/:id`        | Update role                             |
+| DELETE | `/api/v1/roles/:id`        | Delete role (blocked if `isSystemRole`) |
+| POST   | `/api/v1/roles/:id/clone`  | Clone role with its permissions         |
+| PATCH  | `/api/v1/roles/:id/status` | Activate/Deactivate role                |
 
 ### 3.5 Permission
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/v1/permissions` | List all available permissions (grouped by module) |
-| GET | `/api/v1/roles/:id/permissions` | Get permissions assigned to a role |
-| PUT | `/api/v1/roles/:id/permissions` | Bulk update role's permissions (replace set) |
+
+| Method | Endpoint                        | Description                                        |
+| ------ | ------------------------------- | -------------------------------------------------- |
+| GET    | `/api/v1/permissions`           | List all available permissions (grouped by module) |
+| GET    | `/api/v1/roles/:id/permissions` | Get permissions assigned to a role                 |
+| PUT    | `/api/v1/roles/:id/permissions` | Bulk update role's permissions (replace set)       |
 
 ---
 
@@ -301,6 +309,7 @@ backend/api/src/
 ```
 
 **Key implementation detail — `PermissionsGuard`:**
+
 ```typescript
 // Pseudocode
 @RequirePermission('brand_orders', 'APPROVE')
@@ -308,7 +317,7 @@ backend/api/src/
 async approveOrder(@Param('id') id: string) { ... }
 
 // Guard checks:
-// 1. If user.isSuperAdmin → allow
+// 1. If user.isAdmin → allow
 // 2. Else → look up user's role permissions (cached in Redis)
 // 3. Check if (module: 'brand_orders', action: 'APPROVE') exists in role's permission set
 // 4. Allow or throw ForbiddenException
@@ -321,7 +330,8 @@ Role permissions should be **cached in Redis** on login (`role:{roleId}:permissi
 ## 5. Seed Data Requirements
 
 Before other modules can be built, this module needs seed data for:
-- Default system roles per tenant: `Super Admin`, `Business Head`, `Operations Head`, `Operations Manager`, `KAM` (marked `isSystemRole: true`)
+
+- Default system roles per tenant: `Admin`, `Business Head`, `Operations Head`, `Operations Manager`, `KAM` (marked `isSystemRole: true`)
 - Full permission list across all modules (Brand Portal, Vendor Portal, Workflow Engine, Audit Logs, System Admin) — this list should be finalized once Modules 3–6 are scoped, since permissions are module-dependent
 
 ---
@@ -329,7 +339,7 @@ Before other modules can be built, this module needs seed data for:
 ## 6. Open Items Before Coding Starts
 
 - Confirm: can a User have **only one Role**, or should multi-role-per-user be supported? (Current schema assumes one role per user — simpler, matches PRD's role-based structure)
-- Confirm: Super Admin — one global Super Admin, or one per tenant? (Current schema treats `isSuperAdmin` as a per-user flag, works either way)
+- Confirm: Admin — one global Admin, or one per tenant? (Current schema treats `isAdmin` as a per-user flag, works either way)
 - OTP vs password login — affects whether `passwordHash` is required or optional
 
 ---

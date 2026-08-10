@@ -17,7 +17,7 @@ async function main() {
 
   // Step B: Create default system roles
   const roleName = [
-    "Super Admin",
+    "Admin",
     "Business Head",
     "Operation Head",
     "Operation Manager",
@@ -74,11 +74,11 @@ async function main() {
     }
   }
 
-  const superAdminRole = await prisma.role.findFirst({
-    where: { name: "Super Admin" },
+  const adminRole = await prisma.role.findFirst({
+    where: { name: "Admin" },
   });
 
-  // Pehla Super Admin USER create karo
+  // Pehla Admin USER create karo
   const passwordHash = await bcrypt.hash("Admin@123", 10); // temporary password
 
   await prisma.user.upsert({
@@ -88,11 +88,11 @@ async function main() {
     update: { passwordHash }, // ← ab update bhi hoga
     create: {
       tenantId: tenant.id,
-      roleId: superAdminRole.id,
-      fullName: "Super Admin",
+      roleId: adminRole.id,
+      fullName: "Admin",
       email: "admin@colorjet.com",
       passwordHash,
-      isSuperAdmin: true,
+      isAdmin: true,
     },
   });
 
@@ -264,7 +264,7 @@ async function main() {
   });
 
   console.log(
-    "Seed completed ✅ — Super Admin: admin@colorjet.com / Admin@123, Brand: rahul@sharmaprints.com / Brand@123, Vendor: vendor@printpro.com / Vendor@123",
+    "Seed completed ✅ — Admin: admin@colorjet.com / Admin@123, Brand: rahul@sharmaprints.com / Brand@123, Vendor: vendor@printpro.com / Vendor@123",
   );
 }
 

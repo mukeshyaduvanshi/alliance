@@ -8,7 +8,7 @@ export interface AuthSession {
     roleId?: string | null;
     roleName?: string | null;
     tenantId?: string | null;
-    isSuperAdmin?: boolean;
+    isAdmin?: boolean;
     brandId?: string | null;
     vendorId?: string | null;
   };
@@ -97,7 +97,7 @@ export function hasPermission(
 ): boolean {
   const s = session ?? getSession();
   if (!s) return false;
-  if (s.user.isSuperAdmin) return true;
+  if (s.user.isAdmin) return true;
   return (
     s.permissions?.some((p) => p.module === module && p.action === action) ??
     false

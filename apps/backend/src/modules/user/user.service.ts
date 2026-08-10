@@ -137,7 +137,7 @@ export class UserService {
       email: user.email,
       roleId: user.roleId,
       roleName: user.role?.name ?? null,
-      isSuperAdmin: user.isSuperAdmin,
+      isAdmin: user.isAdmin,
       permissions,
       assignedBrandIds: assignedBrands.map((b) => b.id),
     };

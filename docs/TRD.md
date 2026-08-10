@@ -20,7 +20,7 @@ Detailed Prisma schemas for each module will be built as separate follow-up docu
 
 ## 2. System Architecture Overview
 
-ColorJet will be built as a **multi-tenant, multi-portal monorepo platform**, with each user type (Super Admin, Brand, Vendor, KAM/Internal team) accessing its own dedicated frontend app, all backed by a single shared NestJS backend via a centralized API Gateway pattern.
+ColorJet will be built as a **multi-tenant, multi-portal monorepo platform**, with each user type (Admin, Brand, Vendor, KAM/Internal team) accessing its own dedicated frontend app, all backed by a single shared NestJS backend via a centralized API Gateway pattern.
 
 ```
                          ┌─────────────────────┐
@@ -31,7 +31,7 @@ ColorJet will be built as a **multi-tenant, multi-portal monorepo platform**, wi
         ┌───────────┬──────────────┼──────────────┬────────────┐
         │            │              │              │            │
   admin.colorjet  brand.colorjet vendor.colorjet kam.colorjet  (future apps)
-   (Super Admin)     (Brand)       (Vendor)      (Internal Team)
+   (Admin)     (Brand)       (Vendor)      (Internal Team)
         │            │              │              │
         └────────────┴──────────────┴──────────────┘
                           │
@@ -78,7 +78,7 @@ ColorJet will be built as a **multi-tenant, multi-portal monorepo platform**, wi
 - Every table with tenant-specific data includes a `tenantId` column
 - Prisma middleware / NestJS interceptor auto-injects tenant scoping on every query
 - Each subdomain (`brand.colorjet.com`, `vendor.colorjet.com`) resolves its tenant context at request time via subdomain or JWT claim
-- Super Admin queries bypass tenant scoping (global access)
+- Admin queries bypass tenant scoping (global access)
 
 This avoids the operational overhead of separate databases per tenant while still ensuring strict data isolation.
 
@@ -90,7 +90,7 @@ Following the same multi-app pattern used in the Hotel SaaS project:
 
 ```
 apps/
-  ├── admin/          → Super Admin + internal hierarchy (Business Head, Ops Head, etc.)
+  ├── admin/          → Admin + internal hierarchy (Business Head, Ops Head, etc.)
   ├── brand/           → Brand Portal
   ├── vendor/          → Vendor Portal
   ├── kam/            → KAM / Internal team-facing app
@@ -179,7 +179,7 @@ Tenant ──< User >── Role ──< RolePermission >── Permission
 - Each portal (`admin`, `brand`, `vendor`, `kam`) has **independent login/session** but shares the same backend auth service
 - OTP-based or password-based login (to confirm per portal — Vendors/Brands may need simpler onboarding)
 - Role + Permission resolved on login, cached in Redis for fast lookup, invalidated on permission change
-- Super Admin has a separate elevated auth flow (optional 2FA recommended)
+- Admin has a separate elevated auth flow (optional 2FA recommended)
 
 ---
 

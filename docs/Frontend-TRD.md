@@ -28,7 +28,7 @@ Single design system, five independent Next.js apps, one shared backend.
                                      │  REST + JWT
      ┌───────────┬───────────┬───────┴────────┬─────────────┐
  admin          manager       brand          vendor      developer
- (Super Admin)  (KAM/Ops)   (Brand)         (Vendor)    (System Ops)
+ (Admin)  (KAM/Ops)   (Brand)         (Vendor)    (System Ops)
      │              │            │               │             │
      └──────────────┴────────────┴───────────────┴─────────────┘
                                     │
@@ -74,7 +74,7 @@ Single design system, five independent Next.js apps, one shared backend.
 
 ```
 apps/
-  admin/        Next.js — Super Admin Portal
+  admin/        Next.js — Admin Portal
   manager/      Next.js — KAM / Internal Portal
   brand/        Next.js — Brand Portal
   vendor/       Next.js — Vendor Portal

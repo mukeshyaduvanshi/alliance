@@ -31,7 +31,7 @@ The client's current process is based on fixed roles, manual approvals, and sing
 
 ### 3.1 Dynamic Role Management System
 
-Using the predefined roles (Business Head, Operations Head, Operations Manager, KAM) as a starting point, the system will include **Dynamic Role Management**, where the Super Admin can:
+Using the predefined roles (Business Head, Operations Head, Operations Manager, KAM) as a starting point, the system will include **Dynamic Role Management**, where the Admin can:
 
 - Create/edit/delete unlimited custom roles
 - Define role hierarchy
@@ -44,7 +44,7 @@ Using the predefined roles (Business Head, Operations Head, Operations Manager, 
 ### 3.2 Suggested Admin Hierarchy
 
 ```
-Super Admin (Company Owner)
+Admin (Company Owner)
   └── Business Head
         └── Department Admin
               └── Operations Head
@@ -52,7 +52,7 @@ Super Admin (Company Owner)
                           └── Team Leader
 ```
 
-The Super Admin will have unrestricted access — over users, permissions, configurations, and business operations.
+The Admin will have unrestricted access — over users, permissions, configurations, and business operations.
 
 ---
 
@@ -236,7 +236,7 @@ Login/Logout History · IP Address · Device & Browser Info · Location (optiona
 
 - The client is moving from the fixed process (Answer A) to the scalable model (Answer B)
 - Each Brand/Vendor will have its own login/authentication
-- The Super Admin will remain with Cjalliance, with full control
+- The Admin will remain with Cjalliance, with full control
 
 ---
 

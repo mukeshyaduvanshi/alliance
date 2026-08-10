@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Cjalliance Admin",
-  description: "Cjalliance Enterprise Platform - Super Admin Portal",
+  description: "Cjalliance Enterprise Platform - Admin Portal",
 };
 
 export default function RootLayout({

@@ -348,7 +348,7 @@ export class BrandService {
         roleId: null,
         roleName: 'BRAND',
         tenantId: brand.tenantId,
-        isSuperAdmin: false,
+        isAdmin: false,
         brandId: brand.id,
       },
     };
@@ -407,7 +407,7 @@ export class BrandService {
         roleId: null,
         roleName: 'BRAND',
         tenantId: brand.tenantId,
-        isSuperAdmin: false,
+        isAdmin: false,
         brandId: brand.id,
       },
     };

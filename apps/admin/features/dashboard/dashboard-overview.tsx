@@ -78,7 +78,7 @@ export function DashboardOverview() {
     <div className="space-y-6">
       <PageHeader
         title="Dashboard"
-        description="Platform overview for Super Admin"
+        description="Platform overview for Admin"
       />
 
       {/* Hero banner */}

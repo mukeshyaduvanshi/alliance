@@ -296,7 +296,7 @@ export class VendorService {
         roleId: null,
         roleName: 'VENDOR',
         tenantId: vendor.tenantId,
-        isSuperAdmin: false,
+        isAdmin: false,
         vendorId: vendor.id,
       },
     };
@@ -355,7 +355,7 @@ export class VendorService {
         roleId: null,
         roleName: 'VENDOR',
         tenantId: vendor.tenantId,
-        isSuperAdmin: false,
+        isAdmin: false,
         vendorId: vendor.id,
       },
     };

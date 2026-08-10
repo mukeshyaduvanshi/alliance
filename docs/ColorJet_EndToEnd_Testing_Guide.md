@@ -13,7 +13,7 @@ export API=http://localhost:4000/api/v1
 
 ---
 
-## PHASE 1: Super Admin Login (Module 1)
+## PHASE 1: Admin Login (Module 1)
 
 ```bash
 ADMIN_TOKEN=$(curl -s -X POST $API/auth/login \
@@ -59,7 +59,7 @@ curl -s -X POST $API/workflows \
   -d '{"name": "Vendor Onboarding Approval", "module": "vendor_onboarding"}' | jq
 ```
 
-Save the returned `id` from each, then add a step to both (use your Super Admin's role or the Role ID from Phase 2):
+Save the returned `id` from each, then add a step to both (use your Admin's role or the Role ID from Phase 2):
 ```bash
 BRAND_WORKFLOW_ID="<paste-brand-onboarding-workflow-id>"
 VENDOR_WORKFLOW_ID="<paste-vendor-onboarding-workflow-id>"

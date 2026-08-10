@@ -59,7 +59,7 @@ export class AuthService {
       roleId: user.roleId,
       role: user.role.name,
       email: user.email,
-      isSuperAdmin: user.isSuperAdmin,
+      isAdmin: user.isAdmin,
     };
 
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
@@ -96,7 +96,7 @@ export class AuthService {
         roleId: user.roleId,
         roleName: user.role.name,
         tenantId: user.tenantId,
-        isSuperAdmin: user.isSuperAdmin,
+        isAdmin: user.isAdmin,
       },
     };
   }
@@ -131,7 +131,7 @@ export class AuthService {
       roleId: user.roleId,
       role: user.role.name,
       email: user.email,
-      isSuperAdmin: user.isSuperAdmin,
+      isAdmin: user.isAdmin,
     };
 
     const accessToken = this.jwtService.sign(tokenPayload, {
@@ -178,7 +178,7 @@ export class AuthService {
         roleId: user.roleId,
         roleName: user.role.name,
         tenantId: user.tenantId,
-        isSuperAdmin: user.isSuperAdmin,
+        isAdmin: user.isAdmin,
       },
     };
   }

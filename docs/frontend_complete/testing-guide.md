@@ -24,7 +24,7 @@ Nest application successfully started
 > Fix: https://supabase.com/dashboard se project restart karo, ya `packages/database/.env` mein naya connection string daalo.
 
 ### 1.2 DB seed karo (pehli baar)
-Super Admin account banane ke liye:
+Admin account banane ke liye:
 
 ```bash
 pnpm --filter @database/database seed
@@ -32,7 +32,7 @@ pnpm --filter @database/database seed
 
 Isse ye banta hai:
 - Tenant: **colorjet**
-- Super Admin user: `admin@colorjet.com` / `Admin@123`
+- Admin user: `admin@colorjet.com` / `Admin@123`
 - System roles + saare module permissions
 
 ### 1.3 Saare portals ek saath (alag ports)

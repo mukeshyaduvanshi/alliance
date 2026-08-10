@@ -8,7 +8,7 @@ export interface UserDto {
   email: string;
   phone?: string | null;
   status: UserStatus;
-  isSuperAdmin: boolean;
+  isAdmin: boolean;
   lastLoginAt?: string | null;
   createdAt: string;
   updatedAt: string;

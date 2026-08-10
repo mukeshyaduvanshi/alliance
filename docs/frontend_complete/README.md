@@ -36,7 +36,7 @@ Browser testing ke liye: **[testing-guide.md](./testing-guide.md)**
 
 | # | App | Portal | Status |
 |---|-----|--------|--------|
-| 1 | `apps/admin` | Super Admin | ✅ Done (build pass) |
+| 1 | `apps/admin` | Admin | ✅ Done (build pass) |
 | 2 | `apps/manager` | KAM / Internal | ✅ Done (build pass) |
 | 3 | `apps/brand` | Brand (login + register) | ✅ Done (build pass) |
 | 4 | `apps/vendor` | Vendor (login + register) | ✅ Done (build pass) |

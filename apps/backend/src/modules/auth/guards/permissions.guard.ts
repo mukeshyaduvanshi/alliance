@@ -26,7 +26,7 @@ export class PermissionsGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    if (user.isSuperAdmin) return true; // bypass for Super Admin
+    if (user.isAdmin) return true; // bypass for Admin
 
     const rolePermission = await this.prisma.rolePermission.findFirst({
       where: {

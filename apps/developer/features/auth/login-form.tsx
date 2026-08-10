@@ -40,7 +40,7 @@ interface MeResponse {
   email: string;
   roleId: string | null;
   roleName: string | null;
-  isSuperAdmin: boolean;
+  isAdmin: boolean;
   permissions: { module: string; action: string }[];
   assignedBrandIds: string[];
 }
