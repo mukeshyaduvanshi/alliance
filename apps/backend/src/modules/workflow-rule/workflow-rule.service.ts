@@ -12,10 +12,58 @@ import {
 import { CreateWorkflowRuleDto } from './dto/create-workflow-rule.dto';
 import { UpdateWorkflowRuleDto } from './dto/update-workflow-rule.dto';
 import { CreateWorkflowStepDto } from './dto/create-workflow-step.dto';
+import { CreateWorkflowModuleDto } from './dto/create-workflow-module.dto';
+import { UpdateWorkflowModuleDto } from './dto/update-workflow-module.dto';
 
 @Injectable()
 export class WorkflowRuleService {
   constructor(private prisma: PrismaService) {}
+
+  getModules(tenantId: string) {
+    return this.prisma.workflowModule.findMany({
+      where: { tenantId, deletedAt: null },
+      orderBy: { name: 'asc' },
+      select: { name: true },
+    });
+  }
+
+  listModules(tenantId: string) {
+    return this.prisma.workflowModule.findMany({
+      where: { tenantId, deletedAt: null },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  createModule(tenantId: string, dto: CreateWorkflowModuleDto) {
+    return this.prisma.workflowModule.create({
+      data: { tenantId, ...dto },
+    });
+  }
+
+  async updateModule(
+    tenantId: string,
+    id: string,
+    dto: UpdateWorkflowModuleDto,
+  ) {
+    await this.findModule(tenantId, id);
+    return this.prisma.workflowModule.update({ where: { id }, data: dto });
+  }
+
+  async removeModule(tenantId: string, id: string) {
+    await this.findModule(tenantId, id);
+    return this.prisma.workflowModule.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  private async findModule(tenantId: string, id: string) {
+    const module = await this.prisma.workflowModule.findFirst({
+      where: { id, tenantId, deletedAt: null },
+    });
+    if (!module) throw new NotFoundException('Workflow module not found');
+    return module;
+  }
 
   async create(tenantId: string, dto: CreateWorkflowRuleDto) {
     const existing = await this.prisma.workflowRule.findFirst({

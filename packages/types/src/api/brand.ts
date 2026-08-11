@@ -43,6 +43,15 @@ export interface BrandDto {
   assignedKam?: { id: string; fullName: string };
 }
 
+export interface BrandManagerDto {
+  id: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  role?: { id: string; name: string };
+  assignedAt: string;
+}
+
 export interface RegisterBrandDto {
   brandName: string;
   contactPersonName: string;

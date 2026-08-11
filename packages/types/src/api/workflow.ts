@@ -1,5 +1,21 @@
 import { ApprovalDecision, WorkflowInstanceStatus } from "../enums";
 
+export interface WorkflowModuleDto {
+  id: string;
+  tenantId: string;
+  name: string;
+  description?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateWorkflowModuleDto {
+  name: string;
+  description?: string;
+  isActive?: boolean;
+}
+
 export interface WorkflowStepDto {
   id: string;
   workflowRuleId: string;

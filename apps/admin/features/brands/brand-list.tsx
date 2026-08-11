@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Check, X } from "lucide-react";
 import { toast } from "sonner";
@@ -136,7 +137,9 @@ export const brandColumns: ColumnDef<BrandDto>[] = [
       <div className="flex items-center gap-3">
         <InitialsAvatar name={row.original.brandName} tone={1} />
         <div>
-          <p className="font-medium">{row.original.brandName}</p>
+          <Link href={`/brands/${row.original.id}`} className="font-medium hover:underline">
+            {row.original.brandName}
+          </Link>
           <p className="text-muted-foreground text-xs">{row.original.email}</p>
         </div>
       </div>

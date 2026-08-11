@@ -100,6 +100,7 @@ export class WorkflowInstanceService {
   async getPending(
     tenantId: string,
     userRoleId: string,
+    assignedBrandIds: string[] = [],
     page?: string | number,
     pageSize?: string | number,
   ) {
@@ -111,11 +112,19 @@ export class WorkflowInstanceService {
     });
 
     // Filter to instances where the CURRENT step's approver role matches this user's role
+    // AND (optionally) the entity belongs to one of the user's assigned brands
     const filtered = instances.filter((instance) => {
       const currentStep = instance.workflowRule.steps.find(
         (s) => s.stepOrder === instance.currentStepOrder,
       );
-      return currentStep?.approverRoleId === userRoleId;
+      const isRoleMatch = currentStep?.approverRoleId === userRoleId;
+      if (!isRoleMatch) return false;
+      if (assignedBrandIds.length === 0) return true;
+
+      if (instance.entityType === 'Brand') {
+        return assignedBrandIds.includes(instance.entityId);
+      }
+      return true;
     });
 
     const total = filtered.length;

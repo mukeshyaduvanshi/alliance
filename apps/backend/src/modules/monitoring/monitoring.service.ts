@@ -64,11 +64,116 @@ export class MonitoringService {
     });
   }
 
+  // ===== Multi-Manager Assignment =====
+
+  async listBrandManagers(tenantId: string, brandId: string) {
+    const brand = await this.prisma.brand.findFirst({
+      where: { id: brandId, tenantId },
+    });
+    if (!brand) throw new NotFoundException('Brand not found');
+
+    const assignments = await this.prisma.brandAssignment.findMany({
+      where: { brandId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            role: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return assignments.map((a) => ({
+      id: a.id,
+      userId: a.userId,
+      fullName: a.user.fullName,
+      email: a.user.email,
+      role: a.user.role,
+      assignedAt: a.createdAt,
+    }));
+  }
+
+  async assignManagers(
+    tenantId: string,
+    brandId: string,
+    userIds: string[],
+    assignedBy: string,
+  ) {
+    const brand = await this.prisma.brand.findFirst({
+      where: { id: brandId, tenantId },
+    });
+    if (!brand) throw new NotFoundException('Brand not found');
+
+    await this.prisma.brandAssignment.createMany({
+      data: userIds.map((userId) => ({
+        brandId,
+        userId,
+        assignedBy,
+      })),
+      skipDuplicates: true,
+    });
+
+    return this.listBrandManagers(tenantId, brandId);
+  }
+
+  async removeManager(tenantId: string, brandId: string, userId: string) {
+    const brand = await this.prisma.brand.findFirst({
+      where: { id: brandId, tenantId },
+    });
+    if (!brand) throw new NotFoundException('Brand not found');
+
+    await this.prisma.brandAssignment.deleteMany({
+      where: { brandId, userId },
+    });
+
+    return this.listBrandManagers(tenantId, brandId);
+  }
+
+  async getUserAssignedBrands(tenantId: string, userId: string) {
+    const assignments = await this.prisma.brandAssignment.findMany({
+      where: { userId },
+      include: {
+        brand: {
+          select: {
+            id: true,
+            brandName: true,
+            approvalStatus: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+
+    return assignments.map((a) => a.brand);
+  }
+
+  async getAssignedBrandIds(tenantId: string, userId: string) {
+    const brands = await this.getUserAssignedBrands(tenantId, userId);
+    return brands.map((b) => b.id);
+  }
+
   // ===== KAM Dashboard =====
 
   async getKamDashboard(tenantId: string, kamUserId: string) {
+    const assignedBrands = await this.getUserAssignedBrands(
+      tenantId,
+      kamUserId,
+    );
+    const assignedBrandIds = assignedBrands.map((b) => b.id);
+
     const brands = await this.prisma.brand.findMany({
-      where: { tenantId, assignedKamId: kamUserId, deletedAt: null },
+      where: {
+        tenantId,
+        deletedAt: null,
+        OR: [
+          { assignedKamId: kamUserId },
+          { id: { in: assignedBrandIds } },
+        ],
+      },
       select: { id: true, brandName: true, approvalStatus: true },
     });
 

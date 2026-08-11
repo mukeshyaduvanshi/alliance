@@ -1,5 +1,5 @@
 import {
-  getSession,
+  getSession as getSessionRaw,
   saveSession as saveSessionRaw,
   clearSession as clearSessionRaw,
   getAccessToken as getAccessTokenRaw,
@@ -11,7 +11,7 @@ import {
 const PORTAL = "admin";
 
 export const session = {
-  get: () => getSession(PORTAL),
+  get: () => getSessionRaw(PORTAL),
   save: (s: AuthSession) => saveSessionRaw(s, PORTAL),
   clear: () => clearSessionRaw(PORTAL),
   getAccessToken: () => getAccessTokenRaw(PORTAL),
@@ -37,4 +37,6 @@ export function updateTokens(accessToken: string, refreshToken?: string) {
   updateTokensRaw(accessToken, refreshToken, PORTAL);
 }
 
-export { getSession };
+export function getSession() {
+  return getSessionRaw(PORTAL);
+}

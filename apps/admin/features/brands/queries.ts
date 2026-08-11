@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   BrandBusinessModelConfigDto,
   BrandDto,
+  BrandManagerDto,
   BusinessModelType,
   Paginated,
   UserDto,
@@ -106,5 +107,37 @@ export function useInternalUsers() {
   return useQuery({
     queryKey: ["users", "all"],
     queryFn: () => api.get<Paginated<UserDto>>("/users?page=1&pageSize=100"),
+  });
+}
+
+export function useBrandManagers(brandId: string) {
+  return useQuery({
+    queryKey: ["brands", brandId, "managers"],
+    queryFn: () => api.get<BrandManagerDto[]>(`/brands/${brandId}/managers`),
+    enabled: Boolean(brandId),
+  });
+}
+
+export function useAssignManagers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ brandId, userIds }: { brandId: string; userIds: string[] }) =>
+      api.post(`/brands/${brandId}/managers`, { userIds }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["brands", variables.brandId, "managers"] });
+      qc.invalidateQueries({ queryKey: ["brands"] });
+    },
+  });
+}
+
+export function useRemoveManager() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ brandId, userId }: { brandId: string; userId: string }) =>
+      api.delete(`/brands/${brandId}/managers/${userId}`),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["brands", variables.brandId, "managers"] });
+      qc.invalidateQueries({ queryKey: ["brands"] });
+    },
   });
 }

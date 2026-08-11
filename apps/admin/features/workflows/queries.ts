@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type {
   ApprovalActionInput,
+  CreateWorkflowModuleDto,
   CreateWorkflowRuleDto,
   Paginated,
   UpdateWorkflowRuleDto,
   WorkflowInstanceDto,
+  WorkflowModuleDto,
   WorkflowRuleDto,
 } from "@cj/types";
 
@@ -16,6 +18,46 @@ export function useWorkflows(page = 1) {
     queryKey: ["workflows", page],
     queryFn: () =>
       api.get<Paginated<WorkflowRuleDto>>(`/workflows?page=${page}&pageSize=${20}`),
+  });
+}
+
+export function useWorkflowModules() {
+  return useQuery({
+    queryKey: ["workflow-modules"],
+    queryFn: () =>
+      api.get<WorkflowModuleDto[]>("/workflows/modules/detail"),
+  });
+}
+
+export function useCreateWorkflowModule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateWorkflowModuleDto) =>
+      api.post<WorkflowModuleDto>("/workflows/modules", data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workflow-modules"] });
+    },
+  });
+}
+
+export function useUpdateWorkflowModule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: CreateWorkflowModuleDto }) =>
+      api.patch<WorkflowModuleDto>(`/workflows/modules/${id}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workflow-modules"] });
+    },
+  });
+}
+
+export function useDeleteWorkflowModule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/workflows/modules/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workflow-modules"] });
+    },
   });
 }
 

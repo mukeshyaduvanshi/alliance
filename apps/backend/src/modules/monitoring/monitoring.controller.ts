@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Post,
   Patch,
@@ -15,6 +16,7 @@ import { RequirePermission } from '../auth/decorators/require-permission.decorat
 import { MonitoringService } from './monitoring.service';
 import { CreateSlaRuleDto } from './dto/create-sla-rule.dto';
 import { AssignKamDto } from './dto/assign-kam.dto';
+import { AssignManagersDto } from './dto/assign-managers.dto';
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller()
@@ -52,6 +54,44 @@ export class MonitoringController {
       req.user.tenantId,
       brandId,
       dto.kamUserId,
+    );
+  }
+
+  @RequirePermission('brand', 'VIEW')
+  @Get('brands/:brandId/managers')
+  listBrandManagers(@Req() req: any, @Param('brandId') brandId: string) {
+    return this.monitoringService.listBrandManagers(
+      req.user.tenantId,
+      brandId,
+    );
+  }
+
+  @RequirePermission('brand', 'EDIT')
+  @Post('brands/:brandId/managers')
+  assignManagers(
+    @Req() req: any,
+    @Param('brandId') brandId: string,
+    @Body() dto: AssignManagersDto,
+  ) {
+    return this.monitoringService.assignManagers(
+      req.user.tenantId,
+      brandId,
+      dto.userIds,
+      req.user.userId,
+    );
+  }
+
+  @RequirePermission('brand', 'EDIT')
+  @Delete('brands/:brandId/managers/:userId')
+  removeManager(
+    @Req() req: any,
+    @Param('brandId') brandId: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.monitoringService.removeManager(
+      req.user.tenantId,
+      brandId,
+      userId,
     );
   }
 

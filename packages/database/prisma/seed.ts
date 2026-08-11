@@ -74,6 +74,41 @@ async function main() {
     }
   }
 
+  // Step C2: Create default workflow modules (admin-managed, expandable later)
+  const workflowModules = [
+    {
+      name: "brand_onboarding",
+      description: "Brand registration & approval flow",
+    },
+    {
+      name: "brand_order",
+      description: "Brand order approval flow",
+    },
+    {
+      name: "vendor_onboarding",
+      description: "Vendor registration & approval flow",
+    },
+    {
+      name: "purchase_order",
+      description: "Purchase order approval flow",
+    },
+    {
+      name: "creative_artwork",
+      description: "Artwork design & approval flow",
+    },
+  ];
+
+  for (const wm of workflowModules) {
+    await prisma.workflowModule.upsert({
+      where: { tenantId_name: { tenantId: tenant.id, name: wm.name } },
+      update: {},
+      create: {
+        tenantId: tenant.id,
+        ...wm,
+      },
+    });
+  }
+
   const adminRole = await prisma.role.findFirst({
     where: { name: "Admin" },
   });

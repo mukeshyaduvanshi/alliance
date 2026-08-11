@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
+import { UserRound, X } from "lucide-react";
 
 import {
   Badge,
@@ -24,10 +25,12 @@ import { BusinessModelType } from "@cj/types";
 import { formatDateTime } from "@cj/utils";
 
 import {
-  useAssignKam,
+  useAssignManagers,
   useBrand,
   useBrandBusinessModel,
+  useBrandManagers,
   useInternalUsers,
+  useRemoveManager,
   useSetBusinessModel,
 } from "./queries";
 
@@ -41,7 +44,9 @@ export function BrandDetail() {
   const { data: users } = useInternalUsers();
   const { data: businessModel, refetch: refetchBm } = useBrandBusinessModel(id);
   const setBusinessModel = useSetBusinessModel();
-  const assignKam = useAssignKam();
+  const { data: managers, refetch: refetchManagers } = useBrandManagers(id);
+  const assignManagers = useAssignManagers();
+  const removeManager = useRemoveManager();
 
   const [selectedModel, setSelectedModel] = React.useState<string>("");
   const [commission, setCommission] = React.useState<string>("");
@@ -73,14 +78,32 @@ export function BrandDetail() {
     }
   }
 
-  async function handleAssignKam() {
+  async function handleAddManager() {
     if (!kamUserId) return;
+    const alreadyAssigned = managers?.some((m) => m.userId === kamUserId);
+    if (alreadyAssigned) {
+      toast.error("This user is already assigned to this brand");
+      return;
+    }
     try {
-      await assignKam.mutateAsync({ brandId: id, kamUserId });
-      toast.success("KAM assigned");
+      await assignManagers.mutateAsync({ brandId: id, userIds: [kamUserId] });
+      toast.success("Manager assigned");
+      setKamUserId("");
+      refetchManagers();
       refetch();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to assign KAM");
+      toast.error(err instanceof Error ? err.message : "Failed to assign manager");
+    }
+  }
+
+  async function handleRemoveManager(userId: string) {
+    try {
+      await removeManager.mutateAsync({ brandId: id, userId });
+      toast.success("Manager removed");
+      refetchManagers();
+      refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to remove manager");
     }
   }
 
@@ -200,24 +223,56 @@ export function BrandDetail() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Key Account Manager</CardTitle>
+          <CardTitle>Assigned Managers</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-3">
-          <Select value={kamUserId || undefined} onValueChange={setKamUserId}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Select KAM user" />
-            </SelectTrigger>
-            <SelectContent>
-              {users?.data?.map((u) => (
-                <SelectItem key={u.id} value={u.id}>
-                  {u.fullName} ({u.email})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button onClick={handleAssignKam} disabled={!kamUserId || assignKam.isPending}>
-            {assignKam.isPending ? "Assigning..." : "Assign KAM"}
-          </Button>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Select value={kamUserId || undefined} onValueChange={setKamUserId}>
+              <SelectTrigger className="w-72">
+                <SelectValue placeholder="Select manager user" />
+              </SelectTrigger>
+              <SelectContent>
+                {users?.data?.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.fullName} ({u.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleAddManager} disabled={!kamUserId || assignManagers.isPending}>
+              {assignManagers.isPending ? "Assigning..." : "Add Manager"}
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            {managers?.length === 0 && (
+              <p className="text-muted-foreground text-sm">
+                No managers assigned yet. Add a manager to give them visibility of this brand.
+              </p>
+            )}
+            {managers?.map((m) => (
+              <div key={m.userId} className="flex items-center justify-between rounded-md border p-3">
+                <div className="flex items-center gap-3">
+                  <UserRound className="size-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">{m.fullName}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {m.email}
+                      {m.role ? ` · ${m.role.name}` : ""}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => handleRemoveManager(m.userId)}
+                  disabled={removeManager.isPending}
+                >
+                  <X className="size-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>

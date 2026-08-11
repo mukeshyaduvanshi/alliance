@@ -12,11 +12,15 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkflowInstanceService } from './workflow-instance.service';
 import { StartWorkflowDto } from './dto/start-workflow.dto';
 import { ApprovalActionDto } from './dto/approval-action.dto';
+import { MonitoringService } from '../monitoring/monitoring.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workflow-instances')
 export class WorkflowInstanceController {
-  constructor(private workflowInstanceService: WorkflowInstanceService) {}
+  constructor(
+    private workflowInstanceService: WorkflowInstanceService,
+    private monitoringService: MonitoringService,
+  ) {}
 
   @Post()
   start(@Req() req: any, @Body() dto: StartWorkflowDto) {
@@ -43,14 +47,19 @@ export class WorkflowInstanceController {
   }
 
   @Get('pending')
-  getPending(
+  async getPending(
     @Req() req: any,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
   ) {
+    const assignedBrandIds = await this.monitoringService.getAssignedBrandIds(
+      req.user.tenantId,
+      req.user.userId,
+    );
     return this.workflowInstanceService.getPending(
       req.user.tenantId,
       req.user.roleId,
+      assignedBrandIds,
       page,
       pageSize,
     );

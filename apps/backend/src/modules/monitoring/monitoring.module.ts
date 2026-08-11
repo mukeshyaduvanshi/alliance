@@ -6,5 +6,6 @@ import { SlaCheckJob } from './jobs/sla-check.job';
 @Module({
   controllers: [MonitoringController],
   providers: [MonitoringService, SlaCheckJob],
+  exports: [MonitoringService],
 })
 export class MonitoringModule {}

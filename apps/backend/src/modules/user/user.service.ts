@@ -127,7 +127,18 @@ export class UserService {
     );
 
     const assignedBrands = await this.prisma.brand.findMany({
-      where: { tenantId, assignedKamId: userId, deletedAt: null },
+      where: {
+        tenantId,
+        deletedAt: null,
+        OR: [
+          { assignedKamId: userId },
+          {
+            managerAssignments: {
+              some: { userId },
+            },
+          },
+        ],
+      },
       select: { id: true },
     });
 

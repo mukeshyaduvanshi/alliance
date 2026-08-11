@@ -17,16 +17,46 @@ import { WorkflowRuleService } from './workflow-rule.service';
 import { CreateWorkflowRuleDto } from './dto/create-workflow-rule.dto';
 import { UpdateWorkflowRuleDto } from './dto/update-workflow-rule.dto';
 import { CreateWorkflowStepDto } from './dto/create-workflow-step.dto';
+import { CreateWorkflowModuleDto } from './dto/create-workflow-module.dto';
+import { UpdateWorkflowModuleDto } from './dto/update-workflow-module.dto';
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('workflows')
 export class WorkflowRuleController {
   constructor(private workflowRuleService: WorkflowRuleService) {}
 
+  @RequirePermission('workflow', 'VIEW')
+  @Get('modules')
+  getModules(@Req() req: any) {
+    return this.workflowRuleService.getModules(req.user.tenantId);
+  }
+
+  @RequirePermission('workflow', 'VIEW')
+  @Get('modules/detail')
+  listModules(@Req() req: any) {
+    return this.workflowRuleService.listModules(req.user.tenantId);
+  }
+
   @RequirePermission('workflow', 'CREATE')
-  @Post()
-  create(@Req() req: any, @Body() dto: CreateWorkflowRuleDto) {
-    return this.workflowRuleService.create(req.user.tenantId, dto);
+  @Post('modules')
+  createModule(@Req() req: any, @Body() dto: CreateWorkflowModuleDto) {
+    return this.workflowRuleService.createModule(req.user.tenantId, dto);
+  }
+
+  @RequirePermission('workflow', 'EDIT')
+  @Patch('modules/:id')
+  updateModule(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateWorkflowModuleDto,
+  ) {
+    return this.workflowRuleService.updateModule(req.user.tenantId, id, dto);
+  }
+
+  @RequirePermission('workflow', 'DELETE')
+  @Delete('modules/:id')
+  removeModule(@Req() req: any, @Param('id') id: string) {
+    return this.workflowRuleService.removeModule(req.user.tenantId, id);
   }
 
   @RequirePermission('workflow', 'VIEW')

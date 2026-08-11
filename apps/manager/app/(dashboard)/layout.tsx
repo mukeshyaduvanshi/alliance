@@ -41,10 +41,14 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [userName, setUserName] = React.useState("KAM");
+  const [navItems, setNavItems] = React.useState<NavItem[]>([]);
+  const [mounted, setMounted] = React.useState(false);
 
   const { data: notifications } = useNotifications(undefined, 1);
 
   React.useEffect(() => {
+    setMounted(true);
+    setNavItems(toNavItems(managerNavItems));
     const session = getSession();
     if (session?.user?.fullName) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -59,7 +63,7 @@ export default function DashboardLayout({
 
   return (
     <AppShell
-      navItems={toNavItems(managerNavItems)}
+      navItems={navItems}
       title="Manager"
       user={{ name: userName }}
       activeHref={pathname}
@@ -73,7 +77,7 @@ export default function DashboardLayout({
       }))}
       onNotificationClick={() => router.push("/notifications")}
     >
-      {children}
+      {mounted ? children : null}
     </AppShell>
   );
 }

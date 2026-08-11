@@ -56,18 +56,20 @@ import {
   SelectValue,
   Switch,
 } from "@cj/ui";
-import type { CreateWorkflowRuleDto, WorkflowRuleDto } from "@cj/types";
+import type { CreateWorkflowRuleDto, WorkflowModuleDto, WorkflowRuleDto } from "@cj/types";
 
 import { useRoles } from "@/features/users/queries";
 
 import {
   useCreateWorkflow,
+  useCreateWorkflowModule,
   useDeleteWorkflow,
+  useDeleteWorkflowModule,
   useUpdateWorkflow,
+  useUpdateWorkflowModule,
+  useWorkflowModules,
   useWorkflows,
 } from "./queries";
-
-const MODULES = ["brand_onboarding", "brand_order", "vendor_onboarding", "purchase_order"];
 
 const ruleSchema = z.object({
   name: z.string().min(2, "Name required"),
@@ -91,6 +93,7 @@ function WorkflowRuleForm({
   onOpenChange: (open: boolean) => void;
 }) {
   const { data: roles } = useRoles();
+  const { data: modules } = useWorkflowModules();
   const createWorkflow = useCreateWorkflow();
   const updateWorkflow = useUpdateWorkflow();
 
@@ -213,9 +216,9 @@ function WorkflowRuleForm({
                         <SelectValue placeholder="Select module" />
                       </SelectTrigger>
                       <SelectContent>
-                        {MODULES.map((m) => (
-                          <SelectItem key={m} value={m}>
-                            {m}
+                        {modules?.map((m) => (
+                          <SelectItem key={m.id} value={m.name}>
+                            {m.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -343,6 +346,131 @@ function WorkflowRuleForm({
   );
 }
 
+function ManageModulesDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { data: modules, isLoading } = useWorkflowModules();
+  const createModule = useCreateWorkflowModule();
+  const updateModule = useUpdateWorkflowModule();
+  const deleteModule = useDeleteWorkflowModule();
+
+  const [name, setName] = React.useState("");
+  const [description, setDescription] = React.useState("");
+  const [editing, setEditing] = React.useState<WorkflowModuleDto | null>(null);
+
+  React.useEffect(() => {
+    if (open) {
+      setName("");
+      setDescription("");
+      setEditing(null);
+    }
+  }, [open]);
+
+  function startEdit(m: WorkflowModuleDto) {
+    setEditing(m);
+    setName(m.name);
+    setDescription(m.description ?? "");
+  }
+
+  async function handleSave() {
+    if (!name.trim()) return;
+    try {
+      const payload = { name: name.trim(), description: description.trim() || undefined };
+      if (editing) {
+        await updateModule.mutateAsync({ id: editing.id, data: payload });
+        toast.success("Module updated");
+      } else {
+        await createModule.mutateAsync(payload);
+        toast.success("Module created");
+      }
+      setName("");
+      setDescription("");
+      setEditing(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save module");
+    }
+  }
+
+  async function handleDelete(id: string) {
+    try {
+      await deleteModule.mutateAsync(id);
+      toast.success("Module deleted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete module");
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Workflow Modules</DialogTitle>
+          <DialogDescription>
+            Create and manage the modules that approval rules can be configured for.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="rounded-md border p-3 space-y-2">
+            <p className="text-sm font-medium">{editing ? "Edit module" : "New module"}</p>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. brand_order (lowercase, no spaces)"
+            />
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Description (optional)"
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSave} disabled={!name.trim() || createModule.isPending || updateModule.isPending}>
+                {editing ? "Save" : "Add Module"}
+              </Button>
+              {editing && (
+                <Button size="sm" variant="outline" onClick={() => { setEditing(null); setName(""); setDescription(""); }}>
+                  Cancel
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {isLoading ? (
+              <LoadingState rows={3} />
+            ) : (
+              modules?.map((m) => (
+                <div key={m.id} className="flex items-center justify-between rounded-md border p-3">
+                  <div>
+                    <p className="text-sm font-medium">{m.name}</p>
+                    {m.description && (
+                      <p className="text-muted-foreground text-xs">{m.description}</p>
+                    )}
+                    <Badge variant={m.isActive ? "default" : "secondary"} className="mt-1">
+                      {m.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon-sm" onClick={() => startEdit(m)}>
+                      <Pencil className="size-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(m.id)}>
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function DeleteWorkflowDialog({ workflow }: { workflow: WorkflowRuleDto }) {
   const deleteWorkflow = useDeleteWorkflow();
   async function handleDelete() {
@@ -453,6 +581,7 @@ const columns: ColumnDef<WorkflowRuleDto>[] = [
 
 export function WorkflowRules() {
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [modulesOpen, setModulesOpen] = React.useState(false);
   const [page, setPage] = React.useState(1);
   const { data, isLoading, isError, refetch } = useWorkflows(page);
 
@@ -462,10 +591,15 @@ export function WorkflowRules() {
         title="Workflow Rules"
         description="Configure approval workflows per module"
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="size-4" />
-            Create Rule
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setModulesOpen(true)}>
+              Manage Modules
+            </Button>
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="size-4" />
+              Create Rule
+            </Button>
+          </div>
         }
       />
       {isError ? (
@@ -485,6 +619,7 @@ export function WorkflowRules() {
         />
       )}
       <WorkflowRuleForm open={createOpen} onOpenChange={setCreateOpen} />
+      <ManageModulesDialog open={modulesOpen} onOpenChange={setModulesOpen} />
     </div>
   );
 }
