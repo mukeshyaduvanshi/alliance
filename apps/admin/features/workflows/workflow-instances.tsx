@@ -169,7 +169,10 @@ export function WorkflowInstances() {
   const instances = useWorkflowInstances(page);
   const pending = usePendingWorkflows();
 
-  const data = pending.data ?? instances.data?.data ?? [];
+  const data =
+    pending.data && pending.data.length > 0
+      ? pending.data
+      : instances.data?.data ?? [];
 
   return (
     <div className="space-y-6">

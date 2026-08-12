@@ -158,19 +158,20 @@ function WorkflowRuleForm({
         autoApprove: values.autoApprove,
         escalationHours: values.escalationHours,
       };
+      const validSteps = steps.filter((s) => s.approverRoleId);
+      const stepsPayload = validSteps.map((s) => ({
+        stepOrder: s.stepOrder,
+        approverRoleId: s.approverRoleId,
+        escalationRoleId: s.escalationRoleId || undefined,
+        isOptional: s.isOptional,
+      }));
       if (rule) {
-        await updateWorkflow.mutateAsync({ id: rule.id, data: base });
+        await updateWorkflow.mutateAsync({ id: rule.id, data: { ...base, steps: stepsPayload } });
         toast.success("Workflow rule updated");
       } else {
-        const validSteps = steps.filter((s) => s.approverRoleId);
         await createWorkflow.mutateAsync({
           ...base,
-          steps: validSteps.map((s) => ({
-            stepOrder: s.stepOrder,
-            approverRoleId: s.approverRoleId,
-            escalationRoleId: s.escalationRoleId || undefined,
-            isOptional: s.isOptional,
-          })),
+          steps: stepsPayload,
         } as CreateWorkflowRuleDto);
         toast.success("Workflow rule created");
       }

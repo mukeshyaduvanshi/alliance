@@ -131,7 +131,55 @@ export class WorkflowRuleService {
   async update(tenantId: string, id: string, dto: UpdateWorkflowRuleDto) {
     await this.findOne(tenantId, id);
     const { steps, ...ruleData } = dto;
-    return this.prisma.workflowRule.update({ where: { id }, data: ruleData });
+
+    if (!steps) {
+      return this.prisma.workflowRule.update({
+        where: { id },
+        data: ruleData,
+      });
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.workflowStep.findMany({
+        where: { workflowRuleId: id },
+      });
+      const submittedOrders = steps.map((s) => s.stepOrder);
+
+      for (const s of steps) {
+        await tx.workflowStep.upsert({
+          where: {
+            workflowRuleId_stepOrder: {
+              workflowRuleId: id,
+              stepOrder: s.stepOrder,
+            },
+          },
+          update: {
+            approverRoleId: s.approverRoleId,
+            escalationRoleId: s.escalationRoleId ?? null,
+            isOptional: s.isOptional ?? false,
+          },
+          create: {
+            workflowRuleId: id,
+            stepOrder: s.stepOrder,
+            approverRoleId: s.approverRoleId,
+            escalationRoleId: s.escalationRoleId ?? null,
+            isOptional: s.isOptional ?? false,
+          },
+        });
+      }
+
+      for (const old of existing) {
+        if (submittedOrders.includes(old.stepOrder)) continue;
+        const actionCount = await tx.approvalAction.count({
+          where: { workflowStepId: old.id },
+        });
+        if (actionCount === 0) {
+          await tx.workflowStep.delete({ where: { id: old.id } });
+        }
+      }
+
+      return tx.workflowRule.update({ where: { id }, data: ruleData });
+    });
   }
 
   async remove(tenantId: string, id: string) {
