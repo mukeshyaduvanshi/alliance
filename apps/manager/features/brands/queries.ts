@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type {
   BrandBusinessModelConfigDto,
@@ -52,5 +52,29 @@ export function useBrandOrders(brandId: string, page = 1) {
     queryFn: () =>
       api.get<Paginated<OrderDto>>(`/orders?brandId=${brandId}&page=${page}&pageSize=${20}`),
     enabled: Boolean(brandId),
+  });
+}
+
+export function useApproveBrand() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, remarks }: { id: string; remarks?: string }) =>
+      api.post(`/brands/${id}/approve`, { remarks }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["brands"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "kam"] });
+    },
+  });
+}
+
+export function useRejectBrand() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, remarks }: { id: string; remarks?: string }) =>
+      api.post(`/brands/${id}/reject`, { remarks }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["brands"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "kam"] });
+    },
   });
 }

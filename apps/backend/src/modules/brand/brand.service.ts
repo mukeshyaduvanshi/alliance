@@ -151,6 +151,8 @@ export class BrandService {
     status?: string,
     page?: string | number,
     pageSize?: string | number,
+    userId?: string,
+    isAdmin = true,
   ): Promise<Paginated<Record<string, unknown>>> {
     const {
       skip,
@@ -158,10 +160,14 @@ export class BrandService {
       page: p,
       pageSize: size,
     } = getPagination(page, pageSize);
+
+    const assignedIds = isAdmin ? null : await this.getAssignedBrandIds(userId);
+
     const where = {
       tenantId,
       deletedAt: null,
       ...(status ? { approvalStatus: status as any } : {}),
+      ...(assignedIds ? { id: { in: assignedIds } } : {}),
     };
 
     const [brands, total] = await Promise.all([
@@ -179,12 +185,27 @@ export class BrandService {
     return buildPaginated(safe, total, p, size);
   }
 
-  async findOne(tenantId: string, id: string) {
+  async findOne(
+    tenantId: string,
+    id: string,
+    userId?: string,
+    isAdmin = true,
+  ) {
     const brand = await this.prisma.brand.findFirst({
       where: { id, tenantId, deletedAt: null },
       include: { businessProfile: true },
     });
     if (!brand) throw new NotFoundException('Brand not found');
+
+    if (!isAdmin) {
+      const assignedIds = await this.getAssignedBrandIds(userId);
+      if (!assignedIds.includes(id)) {
+        throw new ForbiddenException(
+          'You can only access brands assigned to you',
+        );
+      }
+    }
+
     return brand;
   }
 
@@ -194,8 +215,9 @@ export class BrandService {
     userId: string,
     roleId: string,
     remarks?: string,
+    isAdmin = true,
   ) {
-    const brand = await this.findOne(tenantId, brandId);
+    const brand = await this.findOne(tenantId, brandId, userId, isAdmin);
     if (!brand.workflowInstanceId)
       throw new NotFoundException('No workflow instance linked to this brand');
 
@@ -240,8 +262,9 @@ export class BrandService {
     userId: string,
     roleId: string,
     remarks?: string,
+    isAdmin = true,
   ) {
-    const brand = await this.findOne(tenantId, brandId);
+    const brand = await this.findOne(tenantId, brandId, userId, isAdmin);
     if (!brand.workflowInstanceId)
       throw new NotFoundException('No workflow instance linked to this brand');
 
@@ -467,5 +490,26 @@ export class BrandService {
 
     const { passwordHash: _, ...safeBrand } = updatedBrand;
     return safeBrand;
+  }
+
+  private async getAssignedBrandIds(userId?: string): Promise<string[]> {
+    if (!userId) return [];
+
+    const assignments = await this.prisma.brandAssignment.findMany({
+      where: { userId },
+      select: { brandId: true },
+    });
+
+    const kamAssigned = await this.prisma.brand.findMany({
+      where: { assignedKamId: userId, deletedAt: null },
+      select: { id: true },
+    });
+
+    return Array.from(
+      new Set([
+        ...assignments.map((a) => a.brandId),
+        ...kamAssigned.map((b) => b.id),
+      ]),
+    );
   }
 }

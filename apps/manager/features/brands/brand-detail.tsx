@@ -2,15 +2,24 @@
 
 import * as React from "react";
 import { useParams } from "next/navigation";
+import { toast } from "sonner";
+import { Check, X } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import {
   Badge,
+  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   DataTable,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   ErrorState,
   LoadingState,
   PageHeader,
@@ -19,15 +28,20 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  Textarea,
 } from "@cj/ui";
 import type { OrderDto, PurchaseOrderDto } from "@cj/types";
 import { ApiClientError, formatDateTime, formatINR } from "@cj/utils";
 
+import { usePermission } from "@/lib/permissions";
+
 import {
+  useApproveBrand,
   useBrand,
   useBrandBusinessModel,
   useBrandOrders,
   useBrandPurchaseOrders,
+  useRejectBrand,
 } from "./queries";
 
 const poColumns: ColumnDef<PurchaseOrderDto>[] = [
@@ -240,12 +254,88 @@ function BusinessModelCard({ brandId }: { brandId: string }) {
   );
 }
 
+function BrandApprovalDialog({
+  brand,
+  decision,
+  open,
+  onOpenChange,
+}: {
+  brand: NonNullable<ReturnType<typeof useBrand>["data"]>;
+  decision: "APPROVE" | "REJECT";
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [remarks, setRemarks] = React.useState("");
+  const approve = useApproveBrand();
+  const reject = useRejectBrand();
+  const isApprove = decision === "APPROVE";
+
+  async function handleSubmit() {
+    try {
+      if (isApprove) {
+        await approve.mutateAsync({ id: brand.id, remarks: remarks || undefined });
+        toast.success("Brand approved");
+      } else {
+        await reject.mutateAsync({ id: brand.id, remarks: remarks || undefined });
+        toast.success("Brand rejected");
+      }
+      onOpenChange(false);
+      setRemarks("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Action failed");
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {isApprove ? "Approve" : "Reject"} {brand.brandName}
+          </DialogTitle>
+          <DialogDescription>
+            {brand.contactPersonName} · {brand.email}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <label className="block text-sm font-medium">
+            Remarks (optional)
+            <Textarea
+              className="mt-1.5"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder={isApprove ? "Approval remarks..." : "Reason for rejection..."}
+              rows={3}
+            />
+          </label>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant={isApprove ? "default" : "destructive"}
+            onClick={handleSubmit}
+            disabled={approve.isPending || reject.isPending}
+          >
+            {isApprove ? "Approve" : "Reject"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function BrandDetail() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const [tab, setTab] = React.useState("overview");
   const [poPage, setPoPage] = React.useState(1);
   const [orderPage, setOrderPage] = React.useState(1);
+  const [decision, setDecision] = React.useState<"APPROVE" | "REJECT" | null>(null);
+
+  const canApprove = usePermission("brand", "APPROVE");
+  const canReject = usePermission("brand", "REJECT");
 
   const { data: brand, isLoading, isError, refetch } = useBrand(id);
   const { data: pos, isLoading: poLoading, isError: poError, refetch: refetchPos } = useBrandPurchaseOrders(id, poPage);
@@ -269,11 +359,38 @@ export function BrandDetail() {
         title={brand.brandName}
         description={`${brand.id.slice(0, 8)} · ${brand.email}`}
         actions={
-          <Badge variant={brand.approvalStatus === "APPROVED" ? "default" : "outline"}>
-            {brand.approvalStatus}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {(canApprove || canReject) && brand.approvalStatus === "PENDING" && (
+              <>
+                {canApprove && (
+                  <Button size="sm" onClick={() => setDecision("APPROVE")}>
+                    <Check className="size-4" />
+                    Approve
+                  </Button>
+                )}
+                {canReject && (
+                  <Button size="sm" variant="destructive" onClick={() => setDecision("REJECT")}>
+                    <X className="size-4" />
+                    Reject
+                  </Button>
+                )}
+              </>
+            )}
+            <Badge variant={brand.approvalStatus === "APPROVED" ? "default" : brand.approvalStatus === "REJECTED" ? "destructive" : "outline"}>
+              {brand.approvalStatus}
+            </Badge>
+          </div>
         }
       />
+
+      {decision && (
+        <BrandApprovalDialog
+          brand={brand}
+          decision={decision}
+          open={true}
+          onOpenChange={(open) => !open && setDecision(null)}
+        />
+      )}
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>

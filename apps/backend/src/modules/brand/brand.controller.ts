@@ -33,13 +33,20 @@ export class BrandController {
       status,
       page,
       pageSize,
+      req.user.userId,
+      req.user.isAdmin,
     );
   }
 
   @RequirePermission('brand', 'VIEW')
   @Get(':id')
   findOne(@Req() req: any, @Param('id') id: string) {
-    return this.brandService.findOne(req.user.tenantId, id);
+    return this.brandService.findOne(
+      req.user.tenantId,
+      id,
+      req.user.userId,
+      req.user.isAdmin,
+    );
   }
 
   @RequirePermission('brand', 'APPROVE')
@@ -55,6 +62,7 @@ export class BrandController {
       req.user.userId,
       req.user.roleId,
       dto.remarks,
+      req.user.isAdmin,
     );
   }
 
@@ -71,6 +79,7 @@ export class BrandController {
       req.user.userId,
       req.user.roleId,
       dto.remarks,
+      req.user.isAdmin,
     );
   }
 
