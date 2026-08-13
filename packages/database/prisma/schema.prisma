@@ -88,6 +88,7 @@ model Tenant {
   rates                     Rate[]
   brandRates                BrandRate[]
   vendorRates               VendorRate[]
+  vendorBusinessModelConfigs VendorBusinessModelConfig[]
 
   @@map("tenants")
 }
@@ -128,6 +129,8 @@ model User {
   assignedBrands            Brand[]                    @relation("BrandKam")
   brandAssignments          BrandAssignment[]
   brandBusinessModelConfigs BrandBusinessModelConfig[]
+  vendorAssignments         VendorAssignment[]
+  vendorBusinessModelConfigs VendorBusinessModelConfig[]
 
   @@unique([tenantId, email])
   @@index([tenantId, status])
@@ -826,9 +829,57 @@ model Vendor {
   productRates    VendorProductRate[]
   negotiations    OrderNegotiation[]
   vendorRates     VendorRate[]
+  vendorAssignments VendorAssignment[]
+  vendorBusinessModelConfig VendorBusinessModelConfig?
 
   @@unique([tenantId, email])
   @@map("vendors")
+}
+
+// ============================
+// VENDOR ASSIGNMENT (manager users assigned to a Vendor)
+// ============================
+
+model VendorAssignment {
+  id         String   @id @default(uuid())
+  vendorId   String   @map("vendor_id")
+  userId     String   @map("user_id")
+  assignedBy String?  @map("assigned_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, userId])
+  @@index([userId])
+  @@map("vendor_assignments")
+}
+
+// ============================
+// VENDOR BUSINESS MODEL CONFIG
+// ============================
+
+model VendorBusinessModelConfig {
+  id       String @id @default(uuid())
+  tenantId String @map("tenant_id")
+  vendorId String @unique @map("vendor_id")
+
+  businessModel BusinessModelType @map("business_model")
+
+  commissionPercent Decimal? @map("commission_percent") @db.Decimal(5, 2)
+  markupPercent     Decimal? @map("markup_percent") @db.Decimal(5, 2)
+
+  configuredById String   @map("configured_by_id")
+  effectiveFrom  DateTime @default(now()) @map("effective_from")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant       Tenant @relation(fields: [tenantId], references: [id])
+  vendor       Vendor @relation(fields: [vendorId], references: [id])
+  configuredBy User   @relation(fields: [configuredById], references: [id])
+
+  @@map("vendor_business_model_configs")
 }
 
 // ============================

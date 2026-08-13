@@ -1,4 +1,5 @@
 import {
+  BusinessModelType,
   BusinessType,
   NegotiationStatus,
   Region,
@@ -151,4 +152,22 @@ export interface AssignVendorRateInput {
   productId: string;
   region: Region;
   rate: number;
+}
+
+export interface VendorManagerDto {
+  id: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  role?: { id: string; name: string };
+  assignedAt: string;
+}
+
+export interface VendorBusinessModelConfigDto {
+  id: string;
+  vendorId: string;
+  businessModel: BusinessModelType;
+  commissionPercent?: string | null;
+  markupPercent?: string | null;
+  effectiveFrom: string;
 }

@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Query,
+  Delete,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -16,6 +17,8 @@ import { VendorService } from './vendor.service';
 import { VendorRateService } from './vendor-rate.service';
 import { AssignVendorRateDto } from './dto/assign-vendor-rate.dto';
 import { ApprovalActionDto } from './dto/approval-action.dto';
+import { SetVendorBusinessModelDto } from './dto/set-vendor-business-model.dto';
+import { AssignVendorManagersDto } from './dto/assign-vendor-managers.dto';
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('vendors')
@@ -106,5 +109,61 @@ export class VendorController {
     @Body() dto: AssignVendorRateDto,
   ) {
     return this.vendorRateService.assignRate(req.user.tenantId, vendorId, dto);
+  }
+
+  @RequirePermission('business_model', 'EDIT')
+  @Post(':vendorId/business-model')
+  setBusinessModel(
+    @Req() req: any,
+    @Param('vendorId') vendorId: string,
+    @Body() dto: SetVendorBusinessModelDto,
+  ) {
+    return this.vendorService.setBusinessModel(
+      req.user.tenantId,
+      vendorId,
+      dto,
+      req.user.userId,
+    );
+  }
+
+  @RequirePermission('business_model', 'VIEW')
+  @Get(':vendorId/business-model')
+  getBusinessModel(@Req() req: any, @Param('vendorId') vendorId: string) {
+    return this.vendorService.getBusinessModel(req.user.tenantId, vendorId);
+  }
+
+  @RequirePermission('vendor', 'VIEW')
+  @Get(':vendorId/managers')
+  listManagers(@Req() req: any, @Param('vendorId') vendorId: string) {
+    return this.vendorService.listVendorManagers(req.user.tenantId, vendorId);
+  }
+
+  @RequirePermission('vendor', 'EDIT')
+  @Post(':vendorId/managers')
+  assignManagers(
+    @Req() req: any,
+    @Param('vendorId') vendorId: string,
+    @Body() dto: AssignVendorManagersDto,
+  ) {
+    return this.vendorService.assignVendorManagers(
+      req.user.tenantId,
+      vendorId,
+      dto.userIds,
+      req.user.userId,
+    );
+  }
+
+  @RequirePermission('vendor', 'EDIT')
+  @Delete(':vendorId/managers/:userId')
+  removeManager(
+    @Req() req: any,
+    @Param('vendorId') vendorId: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.vendorService.removeVendorManager(
+      req.user.tenantId,
+      vendorId,
+      userId,
+    );
   }
 }

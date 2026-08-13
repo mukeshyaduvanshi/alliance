@@ -17,6 +17,7 @@ import { RegisterVendorDto } from './dto/register-vendor.dto';
 import * as bcrypt from 'bcrypt';
 import { VendorLoginDto } from './dto/vendor-login.dto';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { SetVendorBusinessModelDto } from './dto/set-vendor-business-model.dto';
 
 @Injectable()
 export class VendorService {
@@ -367,5 +368,113 @@ export class VendorService {
     });
     if (!vendor) throw new NotFoundException('Vendor not found');
     return this.findOne(vendor.tenantId, vendorId);
+  }
+
+  // ===== Business Model =====
+
+  async setBusinessModel(
+    tenantId: string,
+    vendorId: string,
+    dto: SetVendorBusinessModelDto,
+    configuredById: string,
+  ) {
+    await this.findOne(tenantId, vendorId);
+
+    return this.prisma.vendorBusinessModelConfig.upsert({
+      where: { vendorId },
+      update: {
+        businessModel: dto.businessModel,
+        commissionPercent: dto.commissionPercent ?? null,
+        markupPercent: dto.markupPercent ?? null,
+        configuredById,
+        effectiveFrom: new Date(),
+      },
+      create: {
+        tenantId,
+        vendorId,
+        businessModel: dto.businessModel,
+        commissionPercent: dto.commissionPercent ?? null,
+        markupPercent: dto.markupPercent ?? null,
+        configuredById,
+      },
+    });
+  }
+
+  async getBusinessModel(tenantId: string, vendorId: string) {
+    await this.findOne(tenantId, vendorId);
+
+    const config = await this.prisma.vendorBusinessModelConfig.findFirst({
+      where: { vendorId, tenantId },
+      include: { configuredBy: { select: { fullName: true } } },
+    });
+    if (!config)
+      throw new NotFoundException(
+        'No business model configured for this Vendor yet',
+      );
+    return config;
+  }
+
+  // ===== Managers =====
+
+  async listVendorManagers(tenantId: string, vendorId: string) {
+    await this.findOne(tenantId, vendorId);
+
+    const assignments = await this.prisma.vendorAssignment.findMany({
+      where: { vendorId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            role: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return assignments.map((a) => ({
+      id: a.id,
+      userId: a.userId,
+      fullName: a.user.fullName,
+      email: a.user.email,
+      role: a.user.role,
+      assignedAt: a.createdAt,
+    }));
+  }
+
+  async assignVendorManagers(
+    tenantId: string,
+    vendorId: string,
+    userIds: string[],
+    assignedBy: string,
+  ) {
+    await this.findOne(tenantId, vendorId);
+
+    await this.prisma.vendorAssignment.createMany({
+      data: userIds.map((userId) => ({
+        vendorId,
+        userId,
+        assignedBy,
+      })),
+      skipDuplicates: true,
+    });
+
+    return this.listVendorManagers(tenantId, vendorId);
+  }
+
+  async removeVendorManager(
+    tenantId: string,
+    vendorId: string,
+    userId: string,
+  ) {
+    await this.findOne(tenantId, vendorId);
+
+    await this.prisma.vendorAssignment.deleteMany({
+      where: { vendorId, userId },
+    });
+
+    return this.listVendorManagers(tenantId, vendorId);
   }
 }
