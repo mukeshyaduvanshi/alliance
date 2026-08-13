@@ -57,6 +57,31 @@ export function useProposeNegotiation() {
 
 // ===== Rate Card =====
 
+export function useVendorRates() {
+  return useQuery({
+    queryKey: ["vendor", "rates"],
+    queryFn: () => api.get<Record<string, unknown>[]>("/vendor/rates"),
+  });
+}
+
+export function useSetVendorOwnRate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      rateId,
+      region,
+      rate,
+    }: {
+      rateId: string;
+      region: string;
+      rate: number;
+    }) => api.patch(`/vendor/rates/${rateId}/region/${region}`, { rate }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vendor", "rates"] });
+    },
+  });
+}
+
 export function useVendorProducts(page = 1) {
   return useQuery({
     queryKey: ["vendor", "products", "browse", page],

@@ -1,5 +1,5 @@
-import { ProductsOverview } from "@/features/catalog/products-overview";
+import { RatesOverview } from "@/features/catalog/rates-overview";
 
 export default function ProductsPage() {
-  return <ProductsOverview />;
+  return <RatesOverview />;
 }

@@ -1,22 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { MoreHorizontal, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import {
-  Badge,
   Button,
-  DataTable,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
   ErrorState,
   Input,
   Label,
@@ -28,126 +21,109 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@cj/ui";
-import type { ColumnDef } from "@tanstack/react-table";
-import type { Region, SetBrandRateDto } from "@cj/types";
+import type { RateUnit, Region } from "@cj/types";
 import { Region as RegionEnum } from "@cj/types";
+import { Pencil, Plus } from "lucide-react";
 
-import { useBrandProducts, useSetBrandRate } from "@/features/queries";
+import { useBrandRates, useSetBrandOwnRate } from "@/features/queries";
 
 const REGIONS = Object.values(RegionEnum);
-const regionLabel = (r: Region) => r.replace(/_/g, " ");
+const unitLabel = (u: RateUnit | string) => u.replace(/_/g, " ");
 
-interface BrandProductRow {
+interface BrandRateRow {
   id: string;
-  name: string;
-  unit: string;
-  region?: string;
-  rate?: string | null;
-  isCustomRate?: boolean;
-  category?: { id: string; name: string } | null;
-  basePrice?: string | null;
+  label: string;
+  calcUnit: RateUnit;
+  calcWidth?: string | null;
+  calcHeight?: string | null;
+  measUnit: RateUnit;
+  measWidth?: string | null;
+  measHeight?: string | null;
+  brandRates: { rateId: string; region: Region; rate: string; brandId: string; brandName: string }[];
 }
 
-function SetRateDialog({
-  product,
+function sizeText(r: BrandRateRow) {
+  const calcSize =
+    r.calcWidth || r.calcHeight
+      ? `${r.calcWidth ?? "—"} x ${r.calcHeight ?? "—"}`
+      : null;
+  const measSize =
+    r.measWidth || r.measHeight
+      ? `${r.measWidth ?? "—"} x ${r.measHeight ?? "—"}`
+      : null;
+  return [
+    `${unitLabel(r.calcUnit)}${calcSize ? ` (${calcSize})` : ""}`,
+    `${unitLabel(r.measUnit)}${measSize ? ` (${measSize})` : ""}`,
+  ].join(" · ");
+}
+
+function RateEditDialog({
+  rate,
   open,
   onOpenChange,
 }: {
-  product: BrandProductRow;
+  rate: BrandRateRow;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const setRate = useSetBrandRate();
-  const [region, setRegion] = React.useState<Region>((product.region as Region) ?? "PAN_INDIA");
-  const [mode, setMode] = React.useState<"standard" | "custom">(product.isCustomRate ? "custom" : "standard");
-  const [custom, setCustom] = React.useState(
-    product.rate ? String(Number(product.rate)) : ""
-  );
+  const setOwn = useSetBrandOwnRate();
+  const [values, setValues] = React.useState<Record<string, string>>(() => {
+    const next: Record<string, string> = {};
+    for (const r of REGIONS) {
+      const existing = rate.brandRates.find((br) => br.region === r);
+      next[r] = existing ? String(Number(existing.rate)) : "";
+    }
+    return next;
+  });
+  const [saving, setSaving] = React.useState(false);
 
   async function handleSubmit() {
     try {
-      const data: SetBrandRateDto = {
-        region,
-        isCustomRate: mode === "custom",
-        customRate: mode === "custom" ? Number(custom) : undefined,
-      };
-      await setRate.mutateAsync({ productId: product.id, data });
-      toast.success("Rate updated");
+      setSaving(true);
+      const entries = REGIONS.filter((r) => values[r] !== "");
+      await Promise.all(
+        entries.map((r) =>
+          setOwn.mutateAsync({ rateId: rate.id, region: r, rate: Number(values[r]) })
+        )
+      );
+      toast.success("Rates saved");
       onOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save rate");
+      toast.error(err instanceof Error ? err.message : "Failed to save rates");
+    } finally {
+      setSaving(false);
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Set My Rate</DialogTitle>
+          <DialogTitle>Set My Rates</DialogTitle>
           <DialogDescription>
-            {product.name} — choose a region and set your price.
+            {rate.label} — {sizeText(rate)}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Region</Label>
-            <Select value={region} onValueChange={(v) => setRegion(v as Region)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select region" />
-              </SelectTrigger>
-              <SelectContent>
-                {REGIONS.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {regionLabel(r)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Rate type</Label>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant={mode === "standard" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setMode("standard")}
-              >
-                Standard
-              </Button>
-              <Button
-                type="button"
-                variant={mode === "custom" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setMode("custom")}
-              >
-                Custom
-              </Button>
-            </div>
-          </div>
-          {mode === "custom" && (
-            <div className="space-y-2">
-              <Label htmlFor="custom-rate">Custom rate (₹)</Label>
+        <div className="space-y-3">
+          {REGIONS.map((r) => (
+            <div key={r} className="flex items-center justify-between gap-3">
+              <Label className="w-40 shrink-0 text-xs font-medium">{unitLabel(r)}</Label>
               <Input
-                id="custom-rate"
                 type="number"
                 min={0}
-                placeholder="e.g. 480"
-                value={custom}
-                onChange={(e) => setCustom(e.target.value)}
+                value={values[r] ?? ""}
+                onChange={(e) => setValues((prev) => ({ ...prev, [r]: e.target.value }))}
+                placeholder="Rate (₹)"
               />
             </div>
-          )}
+          ))}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={setRate.isPending || (mode === "custom" && !custom)}
-          >
-            {setRate.isPending ? "Saving..." : "Save Rate"}
+          <Button onClick={handleSubmit} disabled={saving}>
+            {saving ? "Saving..." : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -155,103 +131,119 @@ function SetRateDialog({
   );
 }
 
-function RateActions({ product }: { product: BrandProductRow }) {
-  const [editOpen, setEditOpen] = React.useState(false);
-  return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm">
-            <MoreHorizontal className="size-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setEditOpen(true)}>
-            <Pencil className="size-4" />
-            Set My Rate
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <SetRateDialog product={product} open={editOpen} onOpenChange={setEditOpen} />
-    </>
-  );
-}
-
-const columns: ColumnDef<BrandProductRow, unknown>[] = [
-  {
-    accessorKey: "name",
-    header: "Product",
-    cell: ({ row }) => (
-      <div>
-        <p className="font-medium">{row.original.name}</p>
-        <p className="text-muted-foreground text-xs">{row.original.unit}</p>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "category",
-    header: "Category",
-    cell: ({ row }) => row.original.category?.name ?? "—",
-  },
-  {
-    accessorKey: "region",
-    header: "Region",
-    cell: ({ row }) => row.original.region ? regionLabel(row.original.region as Region) : "—",
-  },
-  {
-    accessorKey: "rate",
-    header: "Your Rate",
-    cell: ({ row }) => (
-      <span className="font-medium">
-        ₹{row.original.rate ? Number(row.original.rate).toLocaleString("en-IN") : "—"}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "isCustomRate",
-    header: "Type",
-    cell: ({ row }) =>
-      row.original.isCustomRate ? (
-        <Badge variant="secondary">Custom</Badge>
-      ) : (
-        <Badge variant="outline">Standard</Badge>
-      ),
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => <RateActions product={row.original} />,
-  },
-];
-
 export default function BrandProductsPage() {
-  const [page, setPage] = React.useState(1);
-  const { data, isLoading, isError, refetch } = useBrandProducts(page);
+  const { data, isLoading, isError, refetch } = useBrandRates();
+  const rates = (data ?? []) as unknown as BrandRateRow[];
+  const [selectedId, setSelectedId] = React.useState("");
+  const [adding, setAdding] = React.useState(false);
+  const [editing, setEditing] = React.useState<BrandRateRow | null>(null);
+
+  const selected = rates.find((r) => r.id === selectedId) ?? null;
+  const added = rates.filter((r) => r.brandRates.length > 0);
+
+  function handleSelect(id: string) {
+    setSelectedId(id);
+    const rate = rates.find((r) => r.id === id);
+    if (rate) setEditing(rate);
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Products & Pricing"
-        description="Your negotiated rate card"
+        title="Rate Card"
+        description="Select a rate label from the catalog and set your own price per region"
+        actions={
+          <Button onClick={() => setAdding(true)}>
+            <Plus className="size-4" />
+            Add Rate
+          </Button>
+        }
       />
       {isError ? (
-        <ErrorState
-          title="Failed to load rate card"
-          description="Could not fetch your product rates."
-          onRetry={() => refetch()}
-        />
+        <ErrorState title="Failed to load rate card" description="Could not fetch rates." onRetry={() => refetch()} />
       ) : isLoading ? (
         <LoadingState rows={4} />
       ) : (
-        <DataTable
-          columns={columns}
-          data={(data?.data ?? []) as unknown as BrandProductRow[]}
-          totalRows={data?.meta.total ?? 0}
-          pageIndex={page}
-          pageSize={20}
-          onPageChange={setPage}
-          emptyTitle="No products available"
-          emptyDescription="Your rate card is empty. Set your first rate to start ordering."
-        />
+        <>
+          <Dialog open={adding} onOpenChange={setAdding}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Rate</DialogTitle>
+                <DialogDescription>
+                  Select a rate label and set your own price for each region.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Rate</Label>
+                  <Select value={selectedId || undefined} onValueChange={handleSelect}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a rate" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {rates.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selected && (
+                    <p className="text-muted-foreground text-xs">{sizeText(selected)}</p>
+                  )}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setAdding(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    setAdding(false);
+                    if (selected) setEditing(selected);
+                  }}
+                  disabled={!selected}
+                >
+                  Continue
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <div className="rounded-md border">
+            {added.length === 0 ? (
+              <p className="p-6 text-center text-sm text-muted-foreground">
+                You have not set any rates yet. Click "Add Rate" to start.
+              </p>
+            ) : (
+              <div className="divide-y">
+                {added.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between px-4 py-3">
+                    <div>
+                      <p className="font-medium">{r.label}</p>
+                      <p className="text-muted-foreground text-xs">{sizeText(r)}</p>
+                      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
+                        {r.brandRates.map((br, i) => (
+                          <span key={i} className="text-xs">
+                            <span className="text-muted-foreground">{unitLabel(br.region)}:</span>{" "}
+                            <span className="font-medium">₹{Number(br.rate).toLocaleString("en-IN")}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="icon-sm" onClick={() => setEditing(r)}>
+                      <Pencil className="size-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {editing && (
+            <RateEditDialog rate={editing} open={!!editing} onOpenChange={(o) => !o && setEditing(null)} />
+          )}
+        </>
       )}
     </div>
   );

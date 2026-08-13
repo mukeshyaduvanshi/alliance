@@ -44,6 +44,31 @@ export function useUpdateBrandProfile() {
 
 // ===== Rate Card =====
 
+export function useBrandRates() {
+  return useQuery({
+    queryKey: ["brand", "rates"],
+    queryFn: () => api.get<Record<string, unknown>[]>("/brand/rates"),
+  });
+}
+
+export function useSetBrandOwnRate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      rateId,
+      region,
+      rate,
+    }: {
+      rateId: string;
+      region: string;
+      rate: number;
+    }) => api.patch(`/brand/rates/${rateId}/region/${region}`, { rate }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["brand", "rates"] });
+    },
+  });
+}
+
 export function useBrandProducts(page = 1) {
   return useQuery({
     queryKey: ["brand", "products", page],

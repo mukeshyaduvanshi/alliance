@@ -181,3 +181,15 @@ export enum BusinessModelType {
   MEDIATOR_MODEL = "MEDIATOR_MODEL",
   HYBRID_MODEL = "HYBRID_MODEL",
 }
+
+export enum RateUnit {
+  INCH = "INCH",
+  CM = "CM",
+  MM = "MM",
+  METER = "METER",
+  FOOT = "FOOT",
+  SQ_FT = "SQ_FT",
+  SQ_M = "SQ_M",
+  KILOGRAM = "KILOGRAM",
+  OTHER = "OTHER",
+}

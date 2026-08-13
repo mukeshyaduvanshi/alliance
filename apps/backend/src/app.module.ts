@@ -24,6 +24,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { BusinessModelModule } from './modules/business-model/business-model.module';
 import { InvoiceModule } from './modules/invoice/invoice.module';
+import { RateModule } from './modules/rate/rate.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { InvoiceModule } from './modules/invoice/invoice.module';
     NotificationModule,
     BusinessModelModule,
     InvoiceModule,
+    RateModule,
   ],
   controllers: [AppController],
   providers: [

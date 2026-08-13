@@ -20,7 +20,7 @@ export interface NavItem {
 export const brandNavItems: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   {
-    title: "Products & Pricing",
+    title: "Rates",
     href: "/products",
     icon: Package,
   },
