@@ -29,40 +29,81 @@ export class VendorService {
   ) {}
 
   async register(tenantId: string, dto: RegisterVendorDto) {
-    // const existingPan = await this.prisma.businessProfile.findUnique({
-    //   where: { panNumber: dto.panNumber },
-    // });
-
-    // if (existingPan)
-    //   throw new ConflictException(
-    //     'A business is already registered with this PAN',
-    //   );
-
     const existingEmail = await this.prisma.vendor.findFirst({
       where: { tenantId, email: dto.email, deletedAt: null },
     });
     if (existingEmail)
       throw new ConflictException('A vendor with this email already exists');
 
-    const businessProfile = await this.prisma.businessProfile.create({
-      data: {
-        legalName: dto.legalName,
-        businessType: dto.businessType,
-        panNumber: dto.panNumber,
-        gstNumber: dto.gstNumber,
-        msmeNumber: dto.msmeNumber,
-        cinNumber: dto.cinNumber,
-        panDocUrl: dto.panDocUrl,
-        gstDocUrl: dto.gstDocUrl,
-        msmeDocUrl: dto.msmeDocUrl,
-        cinDocUrl: dto.cinDocUrl,
-        addressLine1: dto.addressLine1,
-        addressLine2: dto.addressLine2,
-        city: dto.city,
-        state: dto.state,
-        pincode: dto.pincode,
-      },
-    });
+    // Empty optional strings ko null normalize (unique constraint collision se bachne ke liye)
+    const panNumber = dto.panNumber?.trim() || null;
+    const gstNumber = dto.gstNumber?.trim() || null;
+    const msmeNumber = dto.msmeNumber?.trim() || null;
+    const cinNumber = dto.cinNumber?.trim() || null;
+
+    // Agar PAN diya hai to existing profile dhundo:
+    // - active brand/vendor linked hai → conflict
+    // - orphan/deleted → profile reuse (update) karo
+    let businessProfile: { id: string };
+    const existingProfile = panNumber
+      ? await this.prisma.businessProfile.findUnique({
+          where: { panNumber },
+          include: {
+            brand: true,
+            vendors: { select: { id: true, deletedAt: true } },
+          },
+        })
+      : null;
+
+    if (existingProfile) {
+      const activeLink =
+        (existingProfile.brand?.deletedAt ?? null) === null ||
+        existingProfile.vendors.some((v) => v.deletedAt === null);
+      if (activeLink) {
+        throw new ConflictException(
+          'A business is already registered with this PAN',
+        );
+      }
+      businessProfile = await this.prisma.businessProfile.update({
+        where: { id: existingProfile.id },
+        data: {
+          legalName: dto.legalName,
+          businessType: dto.businessType,
+          gstNumber,
+          msmeNumber,
+          cinNumber,
+          panDocUrl: dto.panDocUrl ?? null,
+          gstDocUrl: dto.gstDocUrl ?? null,
+          msmeDocUrl: dto.msmeDocUrl ?? null,
+          cinDocUrl: dto.cinDocUrl ?? null,
+          addressLine1: dto.addressLine1,
+          addressLine2: dto.addressLine2 ?? null,
+          city: dto.city,
+          state: dto.state,
+          pincode: dto.pincode,
+        },
+      });
+    } else {
+      businessProfile = await this.prisma.businessProfile.create({
+        data: {
+          legalName: dto.legalName,
+          businessType: dto.businessType,
+          panNumber,
+          gstNumber,
+          msmeNumber,
+          cinNumber,
+          panDocUrl: dto.panDocUrl ?? null,
+          gstDocUrl: dto.gstDocUrl ?? null,
+          msmeDocUrl: dto.msmeDocUrl ?? null,
+          cinDocUrl: dto.cinDocUrl ?? null,
+          addressLine1: dto.addressLine1,
+          addressLine2: dto.addressLine2 ?? null,
+          city: dto.city,
+          state: dto.state,
+          pincode: dto.pincode,
+        },
+      });
+    }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
@@ -94,9 +135,41 @@ export class VendorService {
       data: { workflowInstanceId: instance.id },
     });
 
+    const payload = {
+      sub: vendor.id,
+      vendorId: vendor.id,
+      tenantId: vendor.tenantId,
+      type: 'vendor',
+      role: 'VENDOR',
+      email: vendor.email,
+    };
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+
     return {
       message: 'Registration submitted, pending approval',
       vendorId: vendor.id,
+      accessToken,
+      refreshToken,
+      approvalStatus: vendor.approvalStatus,
+      vendor: {
+        id: vendor.id,
+        vendorName: vendor.vendorName,
+        email: vendor.email,
+        tenantId: vendor.tenantId,
+        approvalStatus: vendor.approvalStatus,
+      },
+      user: {
+        id: vendor.id,
+        fullName: vendor.vendorName,
+        email: vendor.email,
+        roleId: null,
+        roleName: 'VENDOR',
+        tenantId: vendor.tenantId,
+        isAdmin: false,
+        vendorId: vendor.id,
+        approvalStatus: vendor.approvalStatus,
+      },
     };
   }
 
@@ -235,9 +308,6 @@ export class VendorService {
       });
       throw new UnauthorizedException('Invalid credentials');
     }
-    if (vendor.approvalStatus !== 'APPROVED') {
-      throw new ForbiddenException('Your account is pending approval');
-    }
 
     if (!vendor.isActive) {
       throw new ForbiddenException('Your account has been deactivated');
@@ -289,6 +359,7 @@ export class VendorService {
         vendorName: vendor.vendorName,
         email: vendor.email,
         tenantId: vendor.tenantId,
+        approvalStatus: vendor.approvalStatus,
       },
       user: {
         id: vendor.id,
@@ -299,6 +370,7 @@ export class VendorService {
         tenantId: vendor.tenantId,
         isAdmin: false,
         vendorId: vendor.id,
+        approvalStatus: vendor.approvalStatus,
       },
     };
   }

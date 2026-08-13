@@ -130,9 +130,41 @@ export class BrandService {
       data: { workflowInstanceId: instance.id },
     });
 
+    const payload = {
+      sub: brand.id,
+      brandId: brand.id,
+      tenantId: brand.tenantId,
+      type: 'brand',
+      role: 'BRAND',
+      email: brand.email,
+    };
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+
     return {
       message: 'Registration submitted, pending approval',
       brandId: brand.id,
+      accessToken,
+      refreshToken,
+      approvalStatus: brand.approvalStatus,
+      brand: {
+        id: brand.id,
+        brandName: brand.brandName,
+        email: brand.email,
+        tenantId: brand.tenantId,
+        approvalStatus: brand.approvalStatus,
+      },
+      user: {
+        id: brand.id,
+        fullName: brand.brandName,
+        email: brand.email,
+        roleId: null,
+        roleName: 'BRAND',
+        tenantId: brand.tenantId,
+        isAdmin: false,
+        brandId: brand.id,
+        approvalStatus: brand.approvalStatus,
+      },
     };
   }
 
@@ -309,10 +341,6 @@ export class BrandService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (brand.approvalStatus !== 'APPROVED') {
-      throw new ForbiddenException('Your account is pending approval');
-    }
-
     if (!brand.isActive) {
       throw new ForbiddenException('Your account has been deactivated');
     }
@@ -363,6 +391,7 @@ export class BrandService {
         brandName: brand.brandName,
         email: brand.email,
         tenantId: brand.tenantId,
+        approvalStatus: brand.approvalStatus,
       },
       user: {
         id: brand.id,
@@ -373,6 +402,7 @@ export class BrandService {
         tenantId: brand.tenantId,
         isAdmin: false,
         brandId: brand.id,
+        approvalStatus: brand.approvalStatus,
       },
     };
   }

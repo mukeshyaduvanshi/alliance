@@ -31,6 +31,8 @@ export default function DashboardLayout({
     router.push("/login");
   };
 
+  const isApproved = profile?.approvalStatus === "APPROVED";
+
   return (
     <AppShell
       navItems={toNavItems(brandNavItems)}
@@ -40,7 +42,22 @@ export default function DashboardLayout({
       onNavigate={(href) => router.push(href)}
       onLogout={handleLogout}
     >
-      {children}
+      <div className="relative">
+        <div className={isApproved ? "" : "pointer-events-none select-none blur-sm"}>
+          {children}
+        </div>
+        {!isApproved && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center">
+            <div className="rounded-xl border bg-white/90 px-8 py-6 text-center shadow-lg dark:bg-zinc-900/90">
+              <p className="text-lg font-semibold">Your account is pending approval</p>
+              <p className="text-muted-foreground mt-1 text-sm">
+                An admin will approve your account shortly. You will be able to
+                access the dashboard once approved.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
     </AppShell>
   );
 }

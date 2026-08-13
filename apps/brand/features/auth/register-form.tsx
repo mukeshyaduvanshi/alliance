@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -28,6 +29,8 @@ import {
 } from "@cj/ui";
 import { gstinSchema, panSchema, pincodeSchema } from "@cj/utils";
 import { BusinessType } from "@cj/types";
+
+import { saveSession } from "@/lib/session";
 
 const REGISTER_ENDPOINT = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1"}/brand-registration`;
 
@@ -70,6 +73,7 @@ const BUSINESS_TYPES: { value: BusinessType; label: string }[] = [
 ];
 
 export function RegisterForm() {
+  const router = useRouter();
   const [step, setStep] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
   const form = useForm<RegisterValues>({
@@ -115,9 +119,12 @@ export function RegisterForm() {
         }
         throw new Error(message);
       }
+      const data = await res.json();
+      saveSession(data);
       toast.success(
         "Registration submitted! Your account is pending approval."
       );
+      router.push("/dashboard");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Registration failed");
     } finally {

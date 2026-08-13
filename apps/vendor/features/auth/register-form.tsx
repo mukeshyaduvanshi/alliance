@@ -2,13 +2,15 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { ChevronLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@cj/ui";
+import { Button } from "@cj/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@cj/ui";
 import {
   Form,
   FormControl,
@@ -27,6 +29,8 @@ import {
 } from "@cj/ui";
 import { gstinSchema, panSchema, pincodeSchema } from "@cj/utils";
 import { BusinessType } from "@cj/types";
+
+import { saveSession } from "@/lib/session";
 
 const REGISTER_ENDPOINT = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1"}/vendor-registration`;
 
@@ -51,6 +55,14 @@ const registerSchema = z.object({
 
 type RegisterValues = z.infer<typeof registerSchema>;
 
+const STEP_1_FIELDS = [
+  "vendorName",
+  "contactPersonName",
+  "email",
+  "phone",
+  "password",
+] as const;
+
 const BUSINESS_TYPES: { value: BusinessType; label: string }[] = [
   { value: BusinessType.PROPRIETORSHIP, label: "Proprietorship" },
   { value: BusinessType.PARTNERSHIP, label: "Partnership" },
@@ -61,6 +73,8 @@ const BUSINESS_TYPES: { value: BusinessType; label: string }[] = [
 ];
 
 export function RegisterForm() {
+  const router = useRouter();
+  const [step, setStep] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -82,6 +96,11 @@ export function RegisterForm() {
     },
   });
 
+  async function handleContinue() {
+    const valid = await form.trigger(STEP_1_FIELDS);
+    if (valid) setStep(2);
+  }
+
   async function onSubmit(values: RegisterValues) {
     setLoading(true);
     try {
@@ -100,9 +119,12 @@ export function RegisterForm() {
         }
         throw new Error(message);
       }
+      const data = await res.json();
+      saveSession(data);
       toast.success(
         "Registration submitted! Your account is pending approval."
       );
+      router.push("/dashboard");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -116,165 +138,37 @@ export function RegisterForm() {
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Register as a Vendor</CardTitle>
           <p className="text-muted-foreground text-sm">
-            Create your account — approval is required to receive orders
+            {step === 1
+              ? "Step 1 of 2 — Enter your vendor details"
+              : "Step 2 of 2 — Enter your business profile"}
           </p>
+          <div className="flex items-center justify-center gap-2 pt-3">
+            <div
+              className={`h-1.5 w-12 rounded-full ${
+                step >= 1 ? "bg-primary" : "bg-muted"
+              }`}
+            />
+            <div
+              className={`h-1.5 w-12 rounded-full ${
+                step >= 2 ? "bg-primary" : "bg-muted"
+              }`}
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="vendorName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vendor Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Acme Industries" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="contactPersonName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contact Person</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Full name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input placeholder="10-digit mobile" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="you@company.com"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="border-t pt-4">
-                <h3 className="mb-3 text-sm font-semibold">Business Profile</h3>
-                <div className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="legalName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Legal Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Registered legal name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="businessType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Business Type</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {BUSINESS_TYPES.map((t) => (
-                                <SelectItem key={t.value} value={t.value}>
-                                  {t.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="gstNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>GSTIN (optional)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g. 27AAAAA0000A1Z5" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="panNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>PAN (optional)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g. AAAAA0000A" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+              {step === 1 ? (
+                <>
+                  <h3 className="text-sm font-semibold">Vendor Details</h3>
                   <FormField
                     control={form.control}
-                    name="addressLine1"
+                    name="vendorName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Address Line 1</FormLabel>
+                        <FormLabel>Vendor Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Street address" {...field} />
+                          <Input placeholder="e.g. Acme Industries" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -283,12 +177,12 @@ export function RegisterForm() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <FormField
                       control={form.control}
-                      name="addressLine2"
+                      name="contactPersonName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Address Line 2 (optional)</FormLabel>
+                          <FormLabel>Contact Person</FormLabel>
                           <FormControl>
-                            <Input placeholder="Locality / landmark" {...field} />
+                            <Input placeholder="Full name" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -296,53 +190,240 @@ export function RegisterForm() {
                     />
                     <FormField
                       control={form.control}
-                      name="city"
+                      name="phone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>City</FormLabel>
+                          <FormLabel>Phone</FormLabel>
                           <FormControl>
-                            <Input placeholder="City" {...field} />
+                            <Input placeholder="10-digit mobile" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="state"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>State</FormLabel>
-                          <FormControl>
-                            <Input placeholder="State" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="pincode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Pincode</FormLabel>
-                          <FormControl>
-                            <Input placeholder="6-digit pincode" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="you@company.com"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="button"
+                    className="w-full"
+                    onClick={handleContinue}
+                  >
+                    Continue
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="border-t pt-4">
+                    <h3 className="mb-3 text-sm font-semibold">
+                      Business Profile
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="legalName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Legal Name</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Registered legal name"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="businessType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Business Type</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select type" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {BUSINESS_TYPES.map((t) => (
+                                    <SelectItem key={t.value} value={t.value}>
+                                      {t.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="gstNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>GSTIN (optional)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="e.g. 27AAAAA0000A1Z5"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="panNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>PAN (optional)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="e.g. AAAAA0000A"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="addressLine1"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Address Line 1</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Street address" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="addressLine2"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Address Line 2 (optional)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Locality / landmark"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="city"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>City</FormLabel>
+                              <FormControl>
+                                <Input placeholder="City" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="state"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>State</FormLabel>
+                              <FormControl>
+                                <Input placeholder="State" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="pincode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Pincode</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="6-digit pincode"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading && <Loader2 className="animate-spin" />}
-                Register
-              </Button>
+                  <div className="flex gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-1/3"
+                      onClick={() => setStep(1)}
+                    >
+                      <ChevronLeft className="size-4" />
+                      Back
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="flex-1"
+                      disabled={loading}
+                    >
+                      {loading && <Loader2 className="animate-spin" />}
+                      Register
+                    </Button>
+                  </div>
+                </>
+              )}
               <p className="text-muted-foreground text-center text-sm">
                 Already have an account?{" "}
                 <Link

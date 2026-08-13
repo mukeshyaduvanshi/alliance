@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { LoginForm as UiLoginForm } from "@cj/ui";
 import type { AuthSession } from "@cj/utils";
 
@@ -14,6 +15,17 @@ export function LoginForm() {
       loginEndpoint={LOGIN_ENDPOINT}
       redirectTo="/dashboard"
       onSuccess={(data) => saveSession(data as unknown as AuthSession)}
+      footer={
+        <p className="text-muted-foreground text-center text-sm">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/register"
+            className="text-primary font-medium hover:underline"
+          >
+            Sign up
+          </Link>
+        </p>
+      }
     />
   );
 }
