@@ -7,6 +7,7 @@ import {
   type Paginated,
 } from '../../common/pagination';
 import { AssignRateDto } from './dto/assign-rate.dto';
+import { SetBrandRateDto } from './dto/set-brand-rate.dto';
 
 @Injectable()
 export class BrandRateService {
@@ -80,12 +81,47 @@ export class BrandRateService {
 
   // ===== Brand side =====
 
+  async setOwnRate(brandId: string, productId: string, dto: SetBrandRateDto) {
+    const brand = await this.prisma.brand.findFirst({
+      where: { id: brandId, deletedAt: null },
+    });
+    if (!brand) throw new NotFoundException('Brand not found');
+
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, status: ProductStatus.ACTIVE, deletedAt: null },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    return this.prisma.brandProductRate.upsert({
+      where: { brandId_productId: { brandId, productId } },
+      update: {
+        region: dto.region,
+        isCustomRate: dto.isCustomRate ?? false,
+        customRate: dto.isCustomRate ? dto.customRate : null,
+        isActive: true,
+      },
+      create: {
+        tenantId: brand.tenantId,
+        brandId,
+        productId,
+        region: dto.region,
+        isCustomRate: dto.isCustomRate ?? false,
+        customRate: dto.isCustomRate ? dto.customRate : null,
+      },
+    });
+  }
+
   async findProductsForBrand(
     brandId: string,
     page?: string | number,
     pageSize?: string | number,
   ): Promise<Paginated<Record<string, unknown>>> {
-    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const {
+      skip,
+      take,
+      page: p,
+      pageSize: size,
+    } = getPagination(page, pageSize);
     const where = {
       brandId,
       isActive: true,
@@ -95,7 +131,9 @@ export class BrandRateService {
     const [rates, total] = await Promise.all([
       this.prisma.brandProductRate.findMany({
         where,
-        include: { product: { include: { category: true, regionRates: true } } },
+        include: {
+          product: { include: { category: true, regionRates: true } },
+        },
         skip,
         take,
       }),

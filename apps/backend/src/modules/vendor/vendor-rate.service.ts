@@ -1,12 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ProductStatus } from '@database/database';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  buildPaginated,
-  getPagination,
-  type Paginated,
-} from '../../common/pagination';
+import { buildPaginated, getPagination } from '../../common/pagination';
 import { SelectRateDto } from './dto/select-rate.dto';
+import { SetVendorRateDto } from './dto/set-vendor-rate.dto';
 import { AssignVendorRateDto } from './dto/assign-vendor-rate.dto';
 
 @Injectable()
@@ -19,7 +16,12 @@ export class VendorRateService {
     page?: string | number,
     pageSize?: string | number,
   ) {
-    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const {
+      skip,
+      take,
+      page: p,
+      pageSize: size,
+    } = getPagination(page, pageSize);
     const where = { tenantId, deletedAt: null, status: ProductStatus.ACTIVE };
 
     const [products, total] = await Promise.all([
@@ -62,7 +64,13 @@ export class VendorRateService {
     vendorId: string,
     page?: string | number,
     pageSize?: string | number,
-  ) {    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+  ) {
+    const {
+      skip,
+      take,
+      page: p,
+      pageSize: size,
+    } = getPagination(page, pageSize);
     const where = { vendorId, isActive: true };
 
     const [rates, total] = await Promise.all([
@@ -80,11 +88,45 @@ export class VendorRateService {
     const data = rates.map((r) => ({
       ...r.product,
       region: r.region,
-      rate: r.product.vendorRegionRates.find((rr) => rr.region === r.region)
-        ?.rate,
+      isCustomRate: r.isCustomRate,
+      rate: r.isCustomRate
+        ? r.customRate
+        : r.product.vendorRegionRates.find((rr) => rr.region === r.region)
+            ?.rate,
     }));
 
     return buildPaginated(data, total, p, size);
+  }
+
+  // Vendor sets their own region and/or custom rate override
+  async setOwnRate(vendorId: string, productId: string, dto: SetVendorRateDto) {
+    const vendor = await this.prisma.vendor.findFirst({
+      where: { id: vendorId, deletedAt: null },
+    });
+    if (!vendor) throw new NotFoundException('Vendor not found');
+
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, status: ProductStatus.ACTIVE, deletedAt: null },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    return this.prisma.vendorProductRate.upsert({
+      where: { vendorId_productId: { vendorId, productId } },
+      update: {
+        region: dto.region,
+        isCustomRate: dto.isCustomRate ?? false,
+        customRate: dto.isCustomRate ? dto.customRate : null,
+        isActive: true,
+      },
+      create: {
+        tenantId: vendor.tenantId,
+        vendorId,
+        productId,
+        region: dto.region,
+        isCustomRate: dto.isCustomRate ?? false,
+        customRate: dto.isCustomRate ? dto.customRate : null,
+      },
+    });
   }
 
   // ===== Admin assigns a payout rate to a vendor (product × region) =====
@@ -143,8 +185,9 @@ export class VendorRateService {
       productName: r.product.name,
       category: r.product.category?.name ?? null,
       region: r.region,
-      rate: r.product.vendorRegionRates.find((rr) => rr.region === r.region)
-        ?.rate ?? null,
+      rate:
+        r.product.vendorRegionRates.find((rr) => rr.region === r.region)
+          ?.rate ?? null,
       updatedAt: r.updatedAt,
     }));
   }

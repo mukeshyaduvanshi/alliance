@@ -53,6 +53,12 @@ export interface SelectRateDto {
   region: Region;
 }
 
+export interface SetVendorRateDto {
+  region: Region;
+  isCustomRate?: boolean;
+  customRate?: number;
+}
+
 export interface NegotiationResponseDto {
   id: string;
   orderId: string;
@@ -69,6 +75,8 @@ export interface VendorProductRateDto {
   productId: string;
   region: Region;
   isActive: boolean;
+  isCustomRate?: boolean;
+  customRate?: string | null;
   name?: string;
   unit?: string;
   rate?: string | null;

@@ -64,13 +64,22 @@ export class ProductService {
     page?: string | number,
     pageSize?: string | number,
   ): Promise<Paginated<Record<string, unknown>>> {
-    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const {
+      skip,
+      take,
+      page: p,
+      pageSize: size,
+    } = getPagination(page, pageSize);
     const where = { tenantId, deletedAt: null };
 
     const [products, total] = await Promise.all([
       this.prisma.product.findMany({
         where,
-        include: { category: true },
+        include: {
+          category: true,
+          regionRates: true,
+          vendorRegionRates: true,
+        },
         orderBy: { createdAt: 'desc' },
         skip,
         take,
@@ -78,7 +87,12 @@ export class ProductService {
       this.prisma.product.count({ where }),
     ]);
 
-    return buildPaginated(products, total, p, size);
+    const data = products.map(({ regionRates, ...rest }) => ({
+      ...rest,
+      brandRegionRates: regionRates,
+    }));
+
+    return buildPaginated(data, total, p, size);
   }
 
   async findOne(tenantId: string, id: string) {
@@ -91,7 +105,8 @@ export class ProductService {
       },
     });
     if (!product) throw new NotFoundException('Product not found');
-    return product;
+    const { regionRates, ...rest } = product;
+    return { ...rest, brandRegionRates: regionRates };
   }
 
   async update(tenantId: string, id: string, dto: UpdateProductDto) {
@@ -99,7 +114,33 @@ export class ProductService {
 
     const { brandRegionRates, vendorRegionRates, ...productData } = dto;
 
-    return this.prisma.product.update({ where: { id }, data: productData });
+    return this.prisma.$transaction(async (tx) => {
+      if (brandRegionRates && brandRegionRates.length > 0) {
+        await Promise.all(
+          brandRegionRates.map((r) =>
+            tx.productRegionRate.upsert({
+              where: { productId_region: { productId: id, region: r.region } },
+              update: { rate: r.rate },
+              create: { productId: id, region: r.region, rate: r.rate },
+            }),
+          ),
+        );
+      }
+
+      if (vendorRegionRates && vendorRegionRates.length > 0) {
+        await Promise.all(
+          vendorRegionRates.map((r) =>
+            tx.vendorRegionRate.upsert({
+              where: { productId_region: { productId: id, region: r.region } },
+              update: { rate: r.rate },
+              create: { productId: id, region: r.region, rate: r.rate },
+            }),
+          ),
+        );
+      }
+
+      return tx.product.update({ where: { id }, data: productData });
+    });
   }
 
   async updateBrandRegionRates(
@@ -165,7 +206,12 @@ export class ProductService {
     page?: string | number,
     pageSize?: string | number,
   ): Promise<Paginated<Record<string, unknown>>> {
-    const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
+    const {
+      skip,
+      take,
+      page: p,
+      pageSize: size,
+    } = getPagination(page, pageSize);
     const where = { tenantId, deletedAt: null };
 
     const [categories, total] = await Promise.all([

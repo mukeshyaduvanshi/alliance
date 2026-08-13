@@ -41,6 +41,7 @@ import {
   FormLabel,
   FormMessage,
   Input,
+  Label,
   LoadingState,
   PageHeader,
   Select,
@@ -49,10 +50,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@cj/ui";
-import type { CreateProductDto, ProductCategoryDto, ProductDto } from "@cj/types";
+import type { CreateProductDto, ProductCategoryDto, ProductDto, Region, RegionRateInput } from "@cj/types";
+import { Region as RegionEnum } from "@cj/types";
 import { formatDateTime } from "@cj/utils";
 
 import { useCategories, useCreateProduct, useDeleteProduct, useProducts, useUpdateProduct } from "./queries";
+
+const REGIONS = Object.values(RegionEnum);
+const regionLabel = (r: Region) => r.replace(/_/g, " ");
 
 const productSchema = z.object({
   name: z.string().min(2, "Name required"),
@@ -63,6 +68,48 @@ const productSchema = z.object({
 });
 
 type ProductValues = z.infer<typeof productSchema>;
+
+function RateEditor({
+  rates,
+  onRates,
+  label,
+}: {
+  rates: { region: Region; rate: string }[];
+  onRates: (rates: { region: Region; rate: string }[]) => void;
+  label: string;
+}) {
+  function updateRate(region: Region, rate: string) {
+    const updated = rates.some((r) => r.region === region)
+      ? rates.map((r) => (r.region === region ? { ...r, rate } : r))
+      : [...rates, { region, rate }];
+    onRates(updated);
+  }
+
+  return (
+    <div>
+      <p className="mb-2 text-sm font-medium">{label}</p>
+      <div className="rounded-md border">
+        {REGIONS.map((r) => {
+          const row = rates.find((x) => x.region === r);
+          return (
+            <div key={r} className="flex items-center justify-between gap-3 border-b px-3 py-2 last:border-b-0">
+              <Label className="text-xs font-medium capitalize">{regionLabel(r)}</Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                className="w-32"
+                placeholder="Rate (₹)"
+                value={row?.rate ?? ""}
+                onChange={(e) => updateRate(r, e.target.value)}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function ProductFormDialog({
   product,
@@ -77,6 +124,8 @@ function ProductFormDialog({
 }) {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
+  const [brandRates, setBrandRates] = React.useState<{ region: Region; rate: string }[]>([]);
+  const [vendorRates, setVendorRates] = React.useState<{ region: Region; rate: string }[]>([]);
   const form = useForm<ProductValues>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -97,33 +146,43 @@ function ProductFormDialog({
         unit: product?.unit ?? "",
         categoryId: product?.categoryId ?? "",
       });
+      setBrandRates(
+        (product?.brandRegionRates ?? []).map((r) => ({
+          region: r.region,
+          rate: String(r.rate),
+        }))
+      );
+      setVendorRates(
+        (product?.vendorRegionRates ?? []).map((r) => ({
+          region: r.region,
+          rate: String(r.rate),
+        }))
+      );
     }
   }, [open, product, form]);
 
+  function ratesPayload(rates: { region: Region; rate: string }[]): RegionRateInput[] {
+    return rates
+      .filter((r) => r.rate !== "")
+      .map((r) => ({ region: r.region, rate: Number(r.rate) }));
+  }
+
   async function onSubmit(values: ProductValues) {
     try {
+      const payload = {
+        name: values.name,
+        sku: values.sku || undefined,
+        description: values.description || undefined,
+        unit: values.unit || undefined,
+        categoryId: values.categoryId || undefined,
+        brandRegionRates: ratesPayload(brandRates),
+        vendorRegionRates: ratesPayload(vendorRates),
+      };
       if (product) {
-        await updateProduct.mutateAsync({
-          id: product.id,
-          data: {
-            name: values.name,
-            sku: values.sku || undefined,
-            description: values.description || undefined,
-            unit: values.unit || undefined,
-            categoryId: values.categoryId || undefined,
-          },
-        });
+        await updateProduct.mutateAsync({ id: product.id, data: payload });
         toast.success("Product updated");
       } else {
-        await createProduct.mutateAsync({
-          name: values.name,
-          sku: values.sku || undefined,
-          description: values.description || undefined,
-          unit: values.unit || undefined,
-          categoryId: values.categoryId || undefined,
-          brandRegionRates: [],
-          vendorRegionRates: [],
-        } as CreateProductDto);
+        await createProduct.mutateAsync(payload as CreateProductDto);
         toast.success("Product created");
       }
       onOpenChange(false);
@@ -220,6 +279,14 @@ function ProductFormDialog({
                 </FormItem>
               )}
             />
+            <RateEditor
+              rates={brandRates}
+              onRates={setBrandRates}
+              label="Brand rates (selling price per region)" />
+            <RateEditor
+              rates={vendorRates}
+              onRates={setVendorRates}
+              label="Vendor rates (payout per region)" />
             <DialogFooter>
               <Button type="submit" disabled={createProduct.isPending || updateProduct.isPending}>
                 {product ? "Save Changes" : "Create Product"}

@@ -62,6 +62,17 @@ export function useBrandProduct(id: string) {
   });
 }
 
+export function useSetBrandRate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ productId, data }: { productId: string; data: unknown }) =>
+      api.patch(`/brand/products/${productId}/rate`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["brand", "products"] });
+    },
+  });
+}
+
 // ===== Orders =====
 
 export function useBrandOrders(status?: string, page = 1) {

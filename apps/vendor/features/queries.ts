@@ -88,6 +88,17 @@ export function useSelectRate() {
   });
 }
 
+export function useSetVendorRate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ productId, data }: { productId: string; data: unknown }) =>
+      api.patch(`/vendor/products/${productId}/rate`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vendor", "products"] });
+    },
+  });
+}
+
 // ===== Notifications =====
 
 export function useVendorNotifications(isRead?: boolean, page = 1) {

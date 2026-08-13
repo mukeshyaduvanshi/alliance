@@ -112,3 +112,9 @@ export interface BrandRateDto {
   isActive: boolean;
   product?: { id: string; name: string; unit: string };
 }
+
+export interface SetBrandRateDto {
+  region: Region;
+  isCustomRate?: boolean;
+  customRate?: number;
+}

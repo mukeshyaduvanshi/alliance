@@ -9,6 +9,7 @@ import { Button } from "@cj/ui";
 import { DataTable } from "@cj/ui";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@cj/ui";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@cj/ui";
+import { Input } from "@cj/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@cj/ui";
 import { ErrorState } from "@cj/ui";
 import { LoadingState } from "@cj/ui";
@@ -18,7 +19,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 
-import { useSelectRate, useVendorMyRates, useVendorProducts } from "@/features/queries";
+import { useSelectRate, useSetVendorRate, useVendorMyRates, useVendorProducts } from "@/features/queries";
 
 const rateSchema = z.object({
   productId: z.string().min(1, "Select a product"),
@@ -71,9 +72,12 @@ const columns: ColumnDef<VendorProductRateDto, unknown>[] = [
 export default function VendorRatesPage() {
   const [page, setPage] = React.useState(1);
   const [open, setOpen] = React.useState(false);
+  const [mode, setMode] = React.useState<"standard" | "custom">("standard");
+  const [custom, setCustom] = React.useState("");
   const { data, isLoading, isError, refetch } = useVendorMyRates(page);
   const browse = useVendorProducts(1);
   const selectRate = useSelectRate();
+  const setVendorRate = useSetVendorRate();
 
   const form = useForm<RateValues>({
     resolver: zodResolver(rateSchema),
@@ -81,17 +85,35 @@ export default function VendorRatesPage() {
   });
 
   const onSubmit = (values: RateValues) => {
-    selectRate.mutate(
-      { productId: values.productId, region: values.region },
-      {
-        onSuccess: () => {
-          toast.success("Rate added");
-          setOpen(false);
-          form.reset({ productId: "", region: "" });
-        },
-        onError: (e) => toast.error(e.message ?? "Failed to add rate"),
-      }
-    );
+    const common = {
+      productId: values.productId,
+      region: values.region,
+    };
+    const complete =
+      mode === "custom"
+        ? { ...common, isCustomRate: true, customRate: Number(custom) }
+        : { ...common };
+
+    const mutation =
+      mode === "custom"
+        ? {
+            mutateAsync: setVendorRate.mutateAsync,
+            isPending: setVendorRate.isPending,
+          }
+        : { mutateAsync: selectRate.mutateAsync, isPending: selectRate.isPending };
+
+    mutation
+      .mutateAsync(complete as never)
+      .then(() => {
+        toast.success("Rate added");
+        setOpen(false);
+        setCustom("");
+        setMode("standard");
+        form.reset({ productId: "", region: "" });
+      })
+      .catch((e: unknown) =>
+        toast.error(e instanceof Error ? e.message : "Failed to add rate")
+      );
   };
 
   return (
@@ -165,9 +187,49 @@ export default function VendorRatesPage() {
                       </FormItem>
                     )}
                   />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={mode === "standard" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setMode("standard")}
+                    >
+                      Standard rate
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={mode === "custom" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setMode("custom")}
+                    >
+                      Custom rate
+                    </Button>
+                  </div>
+                  {mode === "custom" && (
+                    <div className="space-y-2">
+                      <FormLabel htmlFor="custom-rate">Custom rate (₹)</FormLabel>
+                      <Input
+                        id="custom-rate"
+                        type="number"
+                        min={0}
+                        placeholder="e.g. 450"
+                        value={custom}
+                        onChange={(e) => setCustom(e.target.value)}
+                      />
+                    </div>
+                  )}
                   <DialogFooter>
-                    <Button type="submit" disabled={selectRate.isPending}>
-                      {selectRate.isPending ? "Saving…" : "Add Rate"}
+                    <Button
+                      type="submit"
+                      disabled={
+                        selectRate.isPending ||
+                        setVendorRate.isPending ||
+                        (mode === "custom" && !custom)
+                      }
+                    >
+                      {selectRate.isPending || setVendorRate.isPending
+                        ? "Saving…"
+                        : "Add Rate"}
                     </Button>
                   </DialogFooter>
                 </form>

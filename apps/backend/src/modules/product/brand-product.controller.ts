@@ -1,6 +1,16 @@
-import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { BrandJwtAuthGuard } from '../brand/guards/brand-jwt-auth.guard';
 import { BrandRateService } from './brand-rate.service';
+import { SetBrandRateDto } from './dto/set-brand-rate.dto';
 
 @UseGuards(BrandJwtAuthGuard)
 @Controller('brand/products')
@@ -23,5 +33,14 @@ export class BrandProductController {
   @Get(':id')
   findOne(@Req() req: any, @Param('id') id: string) {
     return this.brandRateService.findOneForBrand(req.user.brandId, id);
+  }
+
+  @Patch(':id/rate')
+  setOwnRate(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: SetBrandRateDto,
+  ) {
+    return this.brandRateService.setOwnRate(req.user.brandId, id, dto);
   }
 }
