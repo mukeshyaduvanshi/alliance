@@ -3,24 +3,40 @@
 import * as React from "react";
 import { useParams } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
+import { toast } from "sonner";
+import { Check, Package, ShoppingCart, Wallet, X } from "lucide-react";
 
 import {
   Badge,
+  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   DataTable,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   ErrorState,
   LoadingState,
   PageHeader,
   StatCard,
+  Textarea,
 } from "@cj/ui";
-import type { OrderDto, OrderStatus } from "@cj/types";
+import type { OrderDto, OrderStatus, VendorDto } from "@cj/types";
 import { formatDateTime, formatINR } from "@cj/utils";
-import { Package, ShoppingCart, Wallet } from "lucide-react";
 
-import { useVendor, useVendorOrders } from "./queries";
+import { usePermission } from "@/lib/permissions";
+
+import {
+  useApproveVendor,
+  useRejectVendor,
+  useVendor,
+  useVendorOrders,
+} from "./queries";
 
 const orderColumns: ColumnDef<OrderDto>[] = [
   {
@@ -29,7 +45,9 @@ const orderColumns: ColumnDef<OrderDto>[] = [
     cell: ({ row }) => (
       <div>
         <p className="font-medium">{row.original.orderNumber}</p>
-        <p className="text-muted-foreground text-xs">{row.original.siteLocation}</p>
+        <p className="text-muted-foreground text-xs">
+          {row.original.siteLocation}
+        </p>
       </div>
     ),
   },
@@ -47,7 +65,11 @@ const orderColumns: ColumnDef<OrderDto>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => (
-      <Badge variant={row.original.status === "CANCELLED" ? "destructive" : "outline"}>
+      <Badge
+        variant={
+          row.original.status === "CANCELLED" ? "destructive" : "outline"
+        }
+      >
         {row.original.status}
       </Badge>
     ),
@@ -59,9 +81,18 @@ const orderColumns: ColumnDef<OrderDto>[] = [
   },
 ];
 
-function PerformanceSummary({ orders, total }: { orders: OrderDto[]; total: number }) {
+function PerformanceSummary({
+  orders,
+  total,
+}: {
+  orders: OrderDto[];
+  total: number;
+}) {
   const totals: Record<OrderStatus, number> = {} as Record<OrderStatus, number>;
-  const totalValue = orders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+  const totalValue = orders.reduce(
+    (sum, o) => sum + Number(o.totalAmount || 0),
+    0,
+  );
 
   for (const o of orders) {
     totals[o.status] = (totals[o.status] ?? 0) + 1;
@@ -83,7 +114,9 @@ function PerformanceSummary({ orders, total }: { orders: OrderDto[]; total: numb
           label="Order Value"
           value={formatINR(String(totalValue))}
           icon={Wallet}
-          hint={partial ? `based on ${orders.length} recent orders` : "total value"}
+          hint={
+            partial ? `based on ${orders.length} recent orders` : "total value"
+          }
         />
         <StatCard
           label="Active Statuses"
@@ -115,10 +148,96 @@ function PerformanceSummary({ orders, total }: { orders: OrderDto[]; total: numb
   );
 }
 
+function VendorApprovalDialog({
+  vendor,
+  decision,
+  open,
+  onOpenChange,
+}: {
+  vendor: VendorDto;
+  decision: "APPROVE" | "REJECT";
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [remarks, setRemarks] = React.useState("");
+  const approve = useApproveVendor();
+  const reject = useRejectVendor();
+  const isApprove = decision === "APPROVE";
+
+  async function handleSubmit() {
+    try {
+      if (isApprove) {
+        await approve.mutateAsync({
+          id: vendor.id,
+          remarks: remarks || undefined,
+        });
+        toast.success("Vendor approved");
+      } else {
+        await reject.mutateAsync({
+          id: vendor.id,
+          remarks: remarks || undefined,
+        });
+        toast.success("Vendor rejected");
+      }
+      onOpenChange(false);
+      setRemarks("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Action failed");
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {isApprove ? "Approve" : "Reject"} {vendor.vendorName}
+          </DialogTitle>
+          <DialogDescription>
+            {vendor.contactPersonName} · {vendor.email}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <label className="block text-sm font-medium">
+            Remarks (optional)
+            <Textarea
+              className="mt-1.5"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder={
+                isApprove ? "Approval remarks..." : "Reason for rejection..."
+              }
+              rows={3}
+            />
+          </label>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant={isApprove ? "default" : "destructive"}
+            onClick={handleSubmit}
+            disabled={approve.isPending || reject.isPending}
+          >
+            {isApprove ? "Approve" : "Reject"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function VendorDetail() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const [page, setPage] = React.useState(1);
+  const [decision, setDecision] = React.useState<"APPROVE" | "REJECT" | null>(
+    null,
+  );
+
+  const canApprove = usePermission("vendor", "APPROVE");
+  const canReject = usePermission("vendor", "REJECT");
 
   const { data: vendor, isLoading, isError, refetch } = useVendor(id);
   const {
@@ -148,9 +267,36 @@ export function VendorDetail() {
         title={vendor.vendorName}
         description={`${vendor.id.slice(0, 8)} · ${vendor.email ?? "—"}`}
         actions={
-          <Badge variant={vendor.approvalStatus === "APPROVED" ? "default" : "outline"}>
-            {vendor.approvalStatus}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {(canApprove || canReject) &&
+              vendor.approvalStatus === "PENDING" && (
+                <>
+                  {canApprove && (
+                    <Button size="sm" onClick={() => setDecision("APPROVE")}>
+                      <Check className="size-4" />
+                      Approve
+                    </Button>
+                  )}
+                  {canReject && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => setDecision("REJECT")}
+                    >
+                      <X className="size-4" />
+                      Reject
+                    </Button>
+                  )}
+                </>
+              )}
+            <Badge
+              variant={
+                vendor.approvalStatus === "APPROVED" ? "default" : "outline"
+              }
+            >
+              {vendor.approvalStatus}
+            </Badge>
+          </div>
         }
       />
 
@@ -196,7 +342,10 @@ export function VendorDetail() {
         </Card>
 
         <div className="lg:col-span-2">
-          <PerformanceSummary orders={orders?.data ?? []} total={orders?.meta.total ?? 0} />
+          <PerformanceSummary
+            orders={orders?.data ?? []}
+            total={orders?.meta.total ?? 0}
+          />
         </div>
       </div>
 
@@ -206,7 +355,11 @@ export function VendorDetail() {
         </CardHeader>
         <CardContent>
           {ordersError ? (
-            <ErrorState title="Failed to load orders" description="Could not fetch vendor orders." onRetry={() => refetchOrders()} />
+            <ErrorState
+              title="Failed to load orders"
+              description="Could not fetch vendor orders."
+              onRetry={() => refetchOrders()}
+            />
           ) : ordersLoading ? (
             <LoadingState rows={4} />
           ) : (
@@ -223,6 +376,15 @@ export function VendorDetail() {
           )}
         </CardContent>
       </Card>
+
+      {decision && vendor && (
+        <VendorApprovalDialog
+          vendor={vendor}
+          decision={decision}
+          open={true}
+          onOpenChange={(open) => !open && setDecision(null)}
+        />
+      )}
     </div>
   );
 }

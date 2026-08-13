@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
-import { UserRound, X, Plus } from "lucide-react";
+import { Check, UserRound, X, Plus } from "lucide-react";
 
 import {
   Badge,
@@ -34,18 +34,21 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Textarea,
 } from "@cj/ui";
 import { BusinessModelType } from "@cj/types";
-import type { Region } from "@cj/types";
+import type { Region, VendorDto } from "@cj/types";
 import { Region as RegionEnum } from "@cj/types";
 import { formatDateTime, formatINR } from "@cj/utils";
 
 import { useInternalUsers } from "../brands/queries";
 import {
+  useApproveVendor,
   useAssignVendorManagers,
   useAssignVendorRate,
   useProductsForRates,
   useRemoveVendorManager,
+  useRejectVendor,
   useSetVendorBusinessModel,
   useVendor,
   useVendorBusinessModel,
@@ -152,6 +155,78 @@ function AssignRateDialog({
   );
 }
 
+function ApprovalDialog({
+  vendor,
+  decision,
+  open,
+  onOpenChange,
+}: {
+  vendor: VendorDto;
+  decision: "APPROVE" | "REJECT";
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [remarks, setRemarks] = React.useState("");
+  const approve = useApproveVendor();
+  const reject = useRejectVendor();
+  const isApprove = decision === "APPROVE";
+
+  async function handleSubmit() {
+    try {
+      if (isApprove) {
+        await approve.mutateAsync({ id: vendor.id, remarks: remarks || undefined });
+        toast.success("Vendor approved");
+      } else {
+        await reject.mutateAsync({ id: vendor.id, remarks: remarks || undefined });
+        toast.success("Vendor rejected");
+      }
+      onOpenChange(false);
+      setRemarks("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Action failed");
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {isApprove ? "Approve" : "Reject"} {vendor.vendorName}
+          </DialogTitle>
+          <DialogDescription>
+            {vendor.contactPersonName} · {vendor.email}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <label className="block text-sm font-medium">
+            Remarks (optional)
+            <Textarea
+              className="mt-1.5"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder={isApprove ? "Approval remarks..." : "Reason for rejection..."}
+              rows={3}
+            />
+          </label>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant={isApprove ? "default" : "destructive"}
+            onClick={handleSubmit}
+            disabled={approve.isPending || reject.isPending}
+          >
+            {isApprove ? "Approve" : "Reject"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function VendorDetail() {
   const params = useParams<{ id: string }>();
   const id = params.id;
@@ -169,6 +244,7 @@ export function VendorDetail() {
   const [markup, setMarkup] = React.useState<string>("");
   const [kamUserId, setKamUserId] = React.useState<string>("");
   const [assignOpen, setAssignOpen] = React.useState(false);
+  const [decision, setDecision] = React.useState<"APPROVE" | "REJECT" | null>(null);
 
   const {
     data: rates,
@@ -288,9 +364,33 @@ export function VendorDetail() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Approval</span>
-              <Badge variant={vendor.approvalStatus === "APPROVED" ? "default" : "outline"}>
-                {vendor.approvalStatus}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant={vendor.approvalStatus === "APPROVED" ? "default" : "outline"}>
+                  {vendor.approvalStatus}
+                </Badge>
+                {vendor.approvalStatus === "PENDING" && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 gap-1 px-2 text-xs"
+                      onClick={() => setDecision("APPROVE")}
+                    >
+                      <Check className="size-3 text-emerald-500" />
+                      Approve
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 gap-1 px-2 text-xs"
+                      onClick={() => setDecision("REJECT")}
+                    >
+                      <X className="size-3 text-red-500" />
+                      Reject
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Registered</span>
@@ -461,6 +561,15 @@ export function VendorDetail() {
           )}
         </CardContent>
       </Card>
+
+      {decision && vendor && (
+        <ApprovalDialog
+          vendor={vendor}
+          decision={decision}
+          open={true}
+          onOpenChange={(open) => !open && setDecision(null)}
+        />
+      )}
     </div>
   );
 }
