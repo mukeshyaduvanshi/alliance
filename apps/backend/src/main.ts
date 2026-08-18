@@ -12,12 +12,19 @@ async function bootstrap() {
     .map((o) => o.trim().replace(/^"+|"+$/g, '').replace(/\/$/, ''))
     .filter(Boolean);
 
+  console.log(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
+
   app.enableCors({
     origin: (origin: any, callback: any) => {
       // Allow requests with no origin (curl, mobile apps, Postman)
       if (!origin) return callback(null, true);
       const clean = (origin as string).replace(/\/$/, '');
+      // Exact match
       if (allowedOrigins.includes(clean)) return callback(null, true);
+      // Any *.vercel.app subdomain (tumhare saare frontends Vercel par hain)
+      if (clean.endsWith('.vercel.app')) return callback(null, true);
+      // Any *.up.railway.app (Railway preview/edge)
+      if (clean.endsWith('.up.railway.app')) return callback(null, true);
       callback(null, false);
     },
     credentials: true,
