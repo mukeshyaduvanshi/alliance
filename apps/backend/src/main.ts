@@ -9,14 +9,15 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1');
   const allowedOrigins = (process.env.CORS_ORIGINS ?? '')
     .split(',')
-    .map((o) => o.trim())
+    .map((o) => o.trim().replace(/^"+|"+$/g, '').replace(/\/$/, ''))
     .filter(Boolean);
 
   app.enableCors({
     origin: (origin: any, callback: any) => {
       // Allow requests with no origin (curl, mobile apps, Postman)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+      const clean = (origin as string).replace(/\/$/, '');
+      if (allowedOrigins.includes(clean)) return callback(null, true);
       callback(null, false);
     },
     credentials: true,
