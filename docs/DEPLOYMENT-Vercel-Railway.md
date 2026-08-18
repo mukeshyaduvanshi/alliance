@@ -180,5 +180,6 @@ CI me koi action nahi chahiye — bas GitHub repo se chal jata hai.
 | Backend start nahi ho raha (Prisma error) | `prisma migrate deploy` chalao ya `prisma generate` rebuild karo |
 | CORS error browser me | Backend `CORS_ORIGINS` me Vercel domain dalo |
 | `@database/database` resolve nahi ho raha | Monorepo me backend sirf Dockerfile wale path se hi deploy karo (sirf apps/backend folder nahi) |
-| `ERR_PNPM_META_FETCH_FAIL` / `ERR_INVALID_THIS` (Vercel build me) | Har frontend app ke `package.json` me `"packageManager": "pnpm@11.13.1"` add karo — Vercel use karta hai is field ko pnpm version choose karne ke liye. Vercel ka purana pnpm Node 24 ke `URLSearchParams` API se crash karta hai. |
+| `ERR_PNPM_META_FETCH_FAIL` / `ERR_INVALID_THIS` (Vercel build me) | Har frontend app ke `package.json` me `"packageManager": "pnpm@11.13.1"` add karo — Vercel use karta hai is field ko pnpm version choose karne ke liye. Vercel ka purana pnpm Node 24 ke `URLSearchParams` API se crash karta hai. Har app me `vercel.json` bhi chahiye: `"installCommand": "corepack enable && pnpm install"`. |
+| Broken lockfile — "expected a single document in the stream, but found more" | `pnpm-lock.yaml` corrupted/git-merge se 2 YAML documents ho gaye hain. Fix: `pnpm-lock.yaml` delete karke `pnpm install --lockfile-only` se regenerate karo, phir `grep -c "^---" pnpm-lock.yaml` se verify karo ke sirf 1 document hai (0 matches aane chahiye). |
 | Nightly workflow fail | Secrets names exact match karo (`VERCEL_DEPLOY_HOOK_ADMIN` etc.) |
