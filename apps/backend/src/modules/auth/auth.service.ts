@@ -13,9 +13,35 @@ export class AuthService {
     private auditLogService: AuditLogService,
   ) {}
 
+  private static readonly PORTAL_ROLES: Record<string, string[]> = {
+    admin: ['Admin'],
+    manager: [
+      'Business Head',
+      'Business Manager',
+      'Operation Head',
+      'Operation Manager',
+      'Key Account Manager',
+      'KAM',
+    ],
+    developer: ['Developer'],
+  };
+
+  private assertPortalAccess(user: any, portal?: string) {
+    if (!portal) return;
+    const allowedRoles = AuthService.PORTAL_ROLES[portal];
+    if (!allowedRoles) return;
+    const roleName = user.role?.name;
+    if (!roleName || !allowedRoles.includes(roleName)) {
+      throw new UnauthorizedException(
+        `This account is not authorized to access the ${portal} portal`,
+      );
+    }
+  }
+
   async login(
     email: string,
     password: string,
+    portal?: string,
     ipAddress?: string,
     userAgent?: string,
   ) {
@@ -52,6 +78,8 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    this.assertPortalAccess(user, portal);
+
     const payload = {
       sub: user.id,
       type: 'internal',
@@ -60,6 +88,7 @@ export class AuthService {
       role: user.role.name,
       email: user.email,
       isAdmin: user.isAdmin,
+      portal,
     };
 
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
@@ -105,6 +134,7 @@ export class AuthService {
     let payload: {
       sub: string;
       type: string;
+      portal?: string;
     };
     try {
       payload = await this.jwtService.verifyAsync(refreshToken);
@@ -124,6 +154,8 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
+    this.assertPortalAccess(user, payload.portal);
+
     const tokenPayload = {
       sub: user.id,
       type: 'internal',
@@ -132,6 +164,7 @@ export class AuthService {
       role: user.role.name,
       email: user.email,
       isAdmin: user.isAdmin,
+      portal: payload.portal,
     };
 
     const accessToken = this.jwtService.sign(tokenPayload, {

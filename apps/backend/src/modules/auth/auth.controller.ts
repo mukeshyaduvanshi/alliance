@@ -12,6 +12,7 @@ export class AuthController {
     return this.authService.login(
       dto.email,
       dto.password,
+      dto.portal,
       req.ip,
       req.headers['user-agent'],
     );

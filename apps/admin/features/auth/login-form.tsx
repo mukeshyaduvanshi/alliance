@@ -11,6 +11,7 @@ export function LoginForm() {
   return (
     <UiLoginForm
       portalName="Cjalliance Admin"
+      portal="admin"
       loginEndpoint={LOGIN_ENDPOINT}
       redirectTo="/dashboard"
       onSuccess={(data) => saveSession(data as unknown as AuthSession)}

@@ -31,6 +31,7 @@ type LoginValues = z.infer<typeof loginSchema>;
 interface LoginFormProps {
   portalName: string;
   loginEndpoint: string;
+  portal?: string;
   redirectTo?: string;
   onSuccess?: (data: Record<string, unknown>) => void;
   footer?: React.ReactNode;
@@ -40,6 +41,7 @@ interface LoginFormProps {
 export function LoginForm({
   portalName,
   loginEndpoint,
+  portal,
   redirectTo = "/",
   onSuccess,
   footer,
@@ -59,7 +61,7 @@ export function LoginForm({
       const res = await fetch(loginEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, ...(portal ? { portal } : {}) }),
         credentials: "include",
       });
 
