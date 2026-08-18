@@ -50,7 +50,12 @@ export class UserService {
     pageSize?: string | number,
   ): Promise<Paginated<Record<string, unknown>>> {
     const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
-    const where = { tenantId, deletedAt: null };
+    const where = {
+      tenantId,
+      deletedAt: null,
+      // Developer role users are internal-only; hide from admin/manager/brand/vendor
+      role: { name: { not: 'Developer' } },
+    };
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({

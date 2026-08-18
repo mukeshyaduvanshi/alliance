@@ -37,7 +37,12 @@ export class RoleService {
     pageSize?: string | number,
   ): Promise<Paginated<Record<string, unknown>>> {
     const { skip, take, page: p, pageSize: size } = getPagination(page, pageSize);
-    const where = { tenantId, deletedAt: null };
+    const where = {
+      tenantId,
+      deletedAt: null,
+      // Developer is an internal/system role; not exposed to admin/manager/brand/vendor
+      name: { not: 'Developer' },
+    };
 
     const [roles, total] = await Promise.all([
       this.prisma.role.findMany({
