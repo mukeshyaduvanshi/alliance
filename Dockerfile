@@ -35,6 +35,9 @@ RUN pnpm --filter backend build
 # ─── Production stage ────────────────────────────────────────
 FROM node:24-alpine AS runner
 
+# pnpm installed so Railway's auto-detected pnpm start command works
+RUN npm install -g pnpm@11.13.1
+
 WORKDIR /app
 
 ENV NODE_ENV=production
