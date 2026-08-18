@@ -8,13 +8,21 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api/v1');
   app.enableCors({
-    origin: process.env.CORS_ORIGINS?.split(',') ?? [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-      'http://localhost:3003',
-      'http://localhost:3004',
-    ],
+    origin: (origin, callback) => {
+      const allowed =
+        process.env.CORS_ORIGINS?.split(',')
+          .map((o) => o.trim().replace(/^"|"$/g, ''))
+          .filter(Boolean) ?? [];
+      if (
+        !origin ||
+        allowed.includes(origin) ||
+        /^https:\/\/localhost:\d+$/.test(origin ?? '')
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Not allowed by CORS: ${origin}`));
+      }
+    },
     credentials: true,
   });
   app.useGlobalPipes(
