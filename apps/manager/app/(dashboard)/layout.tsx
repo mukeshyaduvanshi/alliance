@@ -4,10 +4,22 @@ import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AppShell, type NavItem } from "@cj/ui";
 import { hasPermission } from "@cj/utils";
-import { clearSession, getSession } from "@/lib/session";
+import { api } from "@/lib/api";
+import { clearSession, getSession, saveSession } from "@/lib/session";
 
 import { useNotifications } from "@/features/notifications/queries";
 import { managerNavItems, type NavItem as ManagerNavItem } from "@/lib/navigation";
+
+interface MeResponse {
+  id: string;
+  fullName: string;
+  email: string;
+  roleId: string | null;
+  roleName: string | null;
+  isAdmin: boolean;
+  permissions: { module: string; action: string }[];
+  assignedBrandIds: string[];
+}
 
 function isAllowed(item: ManagerNavItem, session: ReturnType<typeof getSession>): boolean {
   if (!session) return false;
@@ -48,11 +60,35 @@ export default function DashboardLayout({
 
   React.useEffect(() => {
     setMounted(true);
-    setNavItems(toNavItems(managerNavItems));
     const session = getSession();
     if (session?.user?.fullName) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setUserName(session.user.fullName);
+    }
+    setNavItems(toNavItems(managerNavItems));
+
+    if (session?.accessToken) {
+      api
+        .get<MeResponse>("/users/me")
+        .then((me) => {
+          if (me) {
+            const updatedSession = {
+              ...session,
+              permissions: me.permissions ?? [],
+              user: {
+                ...session.user,
+                fullName: me.fullName ?? session.user.fullName,
+                roleName: me.roleName ?? session.user.roleName,
+              },
+            };
+            saveSession(updatedSession);
+            setUserName(updatedSession.user.fullName);
+            setNavItems(toNavItems(managerNavItems));
+          }
+        })
+        .catch(() => {
+          // ignore error
+        });
     }
   }, []);
 

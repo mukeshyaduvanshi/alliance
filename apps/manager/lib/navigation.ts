@@ -1,11 +1,21 @@
 import {
   LayoutDashboard,
+  Users,
+  Shield,
   Building2,
+  Truck,
+  Package,
+  FileText,
   ShoppingCart,
   CheckCircle2,
-  Truck,
+  Palette,
+  UserCheck,
+  Briefcase,
   Activity,
+  ScrollText,
   Bell,
+  Settings,
+  Globe,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,10 +41,43 @@ export const managerNavItems: NavItem[] = [
     permission: { module: "dashboard", action: "VIEW" },
   },
   {
+    title: "Users",
+    href: "/users",
+    icon: Users,
+    permission: { module: "user", action: "VIEW" },
+  },
+  {
+    title: "Roles & Permissions",
+    href: "/roles",
+    icon: Shield,
+    anyOf: [
+      { module: "role", action: "VIEW" },
+      { module: "permission", action: "VIEW" },
+    ],
+  },
+  {
     title: "My Brands",
     href: "/brands",
     icon: Building2,
     permission: { module: "brand", action: "VIEW" },
+  },
+  {
+    title: "Vendors",
+    href: "/vendors",
+    icon: Truck,
+    permission: { module: "vendor", action: "VIEW" },
+  },
+  {
+    title: "Rate Catalog",
+    href: "/rates",
+    icon: Package,
+    permission: { module: "rate", action: "VIEW" },
+  },
+  {
+    title: "Purchase Orders",
+    href: "/purchase-orders",
+    icon: FileText,
+    permission: { module: "purchase_order", action: "VIEW" },
   },
   {
     title: "Orders",
@@ -57,10 +100,22 @@ export const managerNavItems: NavItem[] = [
     ],
   },
   {
-    title: "Vendors",
-    href: "/vendors",
-    icon: Truck,
-    permission: { module: "vendor", action: "VIEW" },
+    title: "Artworks",
+    href: "/artworks",
+    icon: Palette,
+    permission: { module: "creative_artwork", action: "VIEW" },
+  },
+  {
+    title: "Vendor Assignments",
+    href: "/vendors/assignments",
+    icon: UserCheck,
+    permission: { module: "vendor_assignment", action: "VIEW" },
+  },
+  {
+    title: "Business Models",
+    href: "/business-models",
+    icon: Briefcase,
+    permission: { module: "business_model", action: "VIEW" },
   },
   {
     title: "SLA & Alerts",
@@ -76,9 +131,27 @@ export const managerNavItems: NavItem[] = [
     ],
   },
   {
+    title: "Audit Logs",
+    href: "/audit-logs",
+    icon: ScrollText,
+    permission: { module: "audit_log", action: "VIEW" },
+  },
+  {
     title: "Notifications",
     href: "/notifications",
     icon: Bell,
     permission: { module: "notification", action: "VIEW" },
+  },
+  {
+    title: "System Admin",
+    href: "/system-admin",
+    icon: Settings,
+    permission: { module: "system_admin", action: "VIEW" },
+  },
+  {
+    title: "Tenants",
+    href: "/tenants",
+    icon: Globe,
+    permission: { module: "tenant", action: "VIEW" },
   },
 ];
