@@ -43,7 +43,7 @@ async function main() {
     "permission",
     "workflow",
     "brand",
-    "product",
+    "rate",
     "order",
     "purchase_order",
     "creative_artwork",
@@ -69,6 +69,29 @@ async function main() {
           module,
           action,
           label: `${action} ${module}`,
+        },
+      });
+    }
+  }
+
+  // Step C1: Assign ALL permissions to Admin role
+  const allPermissions = await prisma.permission.findMany({ select: { id: true } });
+  const adminRoleForPerms = await prisma.role.findFirst({
+    where: { name: "Admin", tenantId: tenant.id },
+  });
+  if (adminRoleForPerms) {
+    for (const perm of allPermissions) {
+      await prisma.rolePermission.upsert({
+        where: {
+          roleId_permissionId: {
+            roleId: adminRoleForPerms.id,
+            permissionId: perm.id,
+          },
+        },
+        update: {},
+        create: {
+          roleId: adminRoleForPerms.id,
+          permissionId: perm.id,
         },
       });
     }

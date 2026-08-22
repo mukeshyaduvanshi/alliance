@@ -1,5 +1,5 @@
-import { RatesOverview } from "@/features/catalog/rates-overview";
+import { redirect } from "next/navigation";
 
 export default function ProductsPage() {
-  return <RatesOverview />;
+  redirect("/catalog/rates");
 }

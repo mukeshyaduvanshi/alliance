@@ -23,13 +23,13 @@ import { UpdateRegionRatesDto } from './dto/update-region-rates.dto';
 export class ProductController {
   constructor(private productService: ProductService) {}
 
-  @RequirePermission('product', 'CREATE')
+  @RequirePermission('rate', 'CREATE')
   @Post()
   create(@Req() req: any, @Body() dto: CreateProductDto) {
     return this.productService.create(req.user.tenantId, dto);
   }
 
-  @RequirePermission('product', 'VIEW')
+  @RequirePermission('rate', 'VIEW')
   @Get()
   findAll(
     @Req() req: any,
@@ -39,13 +39,13 @@ export class ProductController {
     return this.productService.findAll(req.user.tenantId, page, pageSize);
   }
 
-  @RequirePermission('product', 'VIEW')
+  @RequirePermission('rate', 'VIEW')
   @Get(':id')
   findOne(@Req() req: any, @Param('id') id: string) {
     return this.productService.findOne(req.user.tenantId, id);
   }
 
-  @RequirePermission('product', 'EDIT')
+  @RequirePermission('rate', 'EDIT')
   @Patch(':id')
   update(
     @Req() req: any,
@@ -55,13 +55,13 @@ export class ProductController {
     return this.productService.update(req.user.tenantId, id, dto);
   }
 
-  @RequirePermission('product', 'DELETE')
+  @RequirePermission('rate', 'DELETE')
   @Delete(':id')
   remove(@Req() req: any, @Param('id') id: string) {
     return this.productService.remove(req.user.tenantId, id);
   }
 
-  @RequirePermission('product', 'EDIT')
+  @RequirePermission('rate', 'EDIT')
   @Patch(':id/region-rates')
   updateBrandRegionRates(
     @Req() req: any,
@@ -75,7 +75,7 @@ export class ProductController {
     );
   }
 
-  @RequirePermission('product', 'EDIT')
+  @RequirePermission('rate', 'EDIT')
   @Patch(':id/vendor-region-rates')
   updateVendorRegionRates(
     @Req() req: any,

@@ -10,13 +10,13 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 export class ProductCategoryController {
   constructor(private productService: ProductService) {}
 
-  @RequirePermission('product', 'CREATE')
+  @RequirePermission('rate', 'CREATE')
   @Post()
   create(@Req() req: any, @Body() dto: CreateCategoryDto) {
     return this.productService.createCategory(req.user.tenantId, dto);
   }
 
-  @RequirePermission('product', 'VIEW')
+  @RequirePermission('rate', 'VIEW')
   @Get()
   findAll(
     @Req() req: any,

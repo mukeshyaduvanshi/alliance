@@ -22,7 +22,7 @@ import { UpdateRateDto } from './dto/update-rate.dto';
 export class RateController {
   constructor(private rateService: RateService) {}
 
-  @RequirePermission('product', 'VIEW')
+  @RequirePermission('rate', 'VIEW')
   @Get()
   findAll(
     @Req() req: any,
@@ -32,25 +32,25 @@ export class RateController {
     return this.rateService.findAll(req.user.tenantId, page, pageSize);
   }
 
-  @RequirePermission('product', 'VIEW')
+  @RequirePermission('rate', 'VIEW')
   @Get(':id')
   findOne(@Req() req: any, @Param('id') id: string) {
     return this.rateService.findOne(req.user.tenantId, id);
   }
 
-  @RequirePermission('product', 'CREATE')
+  @RequirePermission('rate', 'CREATE')
   @Post()
   create(@Req() req: any, @Body() dto: CreateRateDto) {
     return this.rateService.create(req.user.tenantId, dto);
   }
 
-  @RequirePermission('product', 'EDIT')
+  @RequirePermission('rate', 'EDIT')
   @Patch(':id')
   update(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateRateDto) {
     return this.rateService.update(req.user.tenantId, id, dto);
   }
 
-  @RequirePermission('product', 'DELETE')
+  @RequirePermission('rate', 'DELETE')
   @Delete(':id')
   remove(@Req() req: any, @Param('id') id: string) {
     return this.rateService.remove(req.user.tenantId, id);

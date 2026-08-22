@@ -65,7 +65,7 @@ export const adminNavItems: NavItem[] = [
     href: "/catalog",
     icon: Package,
     items: [
-      { title: "Rate Catalog", href: "/catalog/products" },
+      { title: "Rate Catalog", href: "/catalog/rates" },
     ],
   },
   { title: "Purchase Orders", href: "/purchase-orders", icon: FileText },

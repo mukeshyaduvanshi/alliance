@@ -20,7 +20,7 @@ import { AssignRateDto } from './dto/assign-rate.dto';
 export class BrandRateController {
   constructor(private brandRateService: BrandRateService) {}
 
-  @RequirePermission('product', 'EDIT')
+  @RequirePermission('rate', 'EDIT')
   @Post()
   assign(
     @Req() req: any,
@@ -35,13 +35,13 @@ export class BrandRateController {
     );
   }
 
-  @RequirePermission('product', 'VIEW')
+  @RequirePermission('rate', 'VIEW')
   @Get()
   findAll(@Req() req: any, @Param('brandId') brandId: string) {
     return this.brandRateService.listForBrandAdmin(req.user.tenantId, brandId);
   }
 
-  @RequirePermission('product', 'DELETE')
+  @RequirePermission('rate', 'DELETE')
   @Delete(':productId')
   remove(
     @Req() req: any,
@@ -55,7 +55,7 @@ export class BrandRateController {
     );
   }
 
-  @RequirePermission('product', 'EDIT')
+  @RequirePermission('rate', 'EDIT')
   @Patch(':productId/status')
   updateStatus(
     @Req() req: any,
