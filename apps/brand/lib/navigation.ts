@@ -21,7 +21,7 @@ export const brandNavItems: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   {
     title: "Rates",
-    href: "/products",
+    href: "/rates",
     icon: Package,
   },
   {

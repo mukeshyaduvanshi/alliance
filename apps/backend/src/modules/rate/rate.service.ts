@@ -146,6 +146,12 @@ export class RateService {
     });
   }
 
+  async deleteBrandRate(tenantId: string, brandId: string, rateId: string) {
+    return this.prisma.brandRate.deleteMany({
+      where: { tenantId, brandId, rateId },
+    });
+  }
+
   async listRatesForBrand(tenantId: string, brandId: string) {
     const rates = await this.prisma.rate.findMany({
       where: { tenantId, deletedAt: null },

@@ -138,7 +138,7 @@ export class BrandService {
       role: 'BRAND',
       email: brand.email,
     };
-    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '1d' });
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
 
     return {
@@ -217,12 +217,7 @@ export class BrandService {
     return buildPaginated(safe, total, p, size);
   }
 
-  async findOne(
-    tenantId: string,
-    id: string,
-    userId?: string,
-    isAdmin = true,
-  ) {
+  async findOne(tenantId: string, id: string, userId?: string, isAdmin = true) {
     const brand = await this.prisma.brand.findFirst({
       where: { id, tenantId, deletedAt: null },
       include: { businessProfile: true },
@@ -400,7 +395,7 @@ export class BrandService {
       role: 'BRAND',
       email: brand.email,
     };
-    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '1d' });
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
 
     await this.auditLogService.log({
@@ -469,7 +464,7 @@ export class BrandService {
       email: brand.email,
     };
     const accessToken = this.jwtService.sign(tokenPayload, {
-      expiresIn: '15m',
+      expiresIn: '1d',
     });
     const newRefreshToken = this.jwtService.sign(tokenPayload, {
       expiresIn: '7d',

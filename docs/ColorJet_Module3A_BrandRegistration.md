@@ -1,4 +1,5 @@
 # Module 3A: Business Profile & Brand Registration
+
 ## Self-Registration + Workflow-Based Approval
 
 **Platform:** ColorJet Enterprise
@@ -9,6 +10,7 @@
 ## 1. Scope
 
 This sub-module covers:
+
 - `BusinessProfile` — reusable PAN/GST/MSME/address model (shared by Brand and Vendor, as decided earlier)
 - `Brand` — the business entity itself
 - Public self-registration flow (Brand signs up without needing an Admin to create the account)
@@ -113,6 +115,7 @@ model Brand {
 ```
 
 **Design notes:**
+
 - `Brand.workflowInstanceId` — stores which `WorkflowInstance` (Module 2) is tracking this brand's approval. Not a hard FK (kept loose) since a Brand could theoretically be re-submitted with a new instance after rejection.
 - `Brand.approvalStatus` is **denormalized** from the workflow instance status — this is intentional. Querying "show me all pending brands" would otherwise require a join into the Workflow Engine every time; keeping a synced copy here makes brand-listing queries fast. It gets updated via an event/callback when the workflow instance changes (see Section 5).
 - `passwordHash` is nullable — a Brand can't log in until approved, so it may not be set at registration time (depends on Step 4 decision below).
@@ -123,26 +126,29 @@ model Brand {
 ## 3. API Endpoints
 
 ### 3.1 Public (No Auth) — Self-Registration
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/v1/brand-registration` | Brand submits registration (business + KYC details) |
-| GET | `/api/v1/brand-registration/status?email=` | Check own application status (no login needed yet) |
+
+| Method | Endpoint                                   | Description                                         |
+| ------ | ------------------------------------------ | --------------------------------------------------- |
+| POST   | `/api/v1/brand-registration`               | Brand submits registration (business + KYC details) |
+| GET    | `/api/v1/brand-registration/status?email=` | Check own application status (no login needed yet)  |
 
 ### 3.2 Admin — Approval Management
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/v1/brands` | List all brands (filter by `approvalStatus`) |
-| GET | `/api/v1/brands/:id` | Get brand details + business profile |
-| POST | `/api/v1/brands/:id/approve` | Approve brand (delegates to Workflow Engine) |
-| POST | `/api/v1/brands/:id/reject` | Reject brand (delegates to Workflow Engine) |
-| PATCH | `/api/v1/brands/:id/status` | Activate/Deactivate an already-approved brand |
+
+| Method | Endpoint                     | Description                                   |
+| ------ | ---------------------------- | --------------------------------------------- |
+| GET    | `/api/v1/brands`             | List all brands (filter by `approvalStatus`)  |
+| GET    | `/api/v1/brands/:id`         | Get brand details + business profile          |
+| POST   | `/api/v1/brands/:id/approve` | Approve brand (delegates to Workflow Engine)  |
+| POST   | `/api/v1/brands/:id/reject`  | Reject brand (delegates to Workflow Engine)   |
+| PATCH  | `/api/v1/brands/:id/status`  | Activate/Deactivate an already-approved brand |
 
 ### 3.3 Brand Portal (Brand's own login, post-approval)
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/v1/brand-auth/login` | Brand login (separate from internal-team auth) |
-| GET | `/api/v1/brand-auth/me` | Get own profile |
-| PATCH | `/api/v1/brand-auth/me` | Update own profile (not business/KYC fields — those need re-approval) |
+
+| Method | Endpoint                   | Description                                                           |
+| ------ | -------------------------- | --------------------------------------------------------------------- |
+| POST   | `/api/v1/brand-auth/login` | Brand login (separate from internal-team auth)                        |
+| GET    | `/api/v1/brand-auth/me`    | Get own profile                                                       |
+| PATCH  | `/api/v1/brand-auth/me`    | Update own profile (not business/KYC fields — those need re-approval) |
 
 ---
 
@@ -247,6 +253,7 @@ async approve(tenantId: string, brandId: string, userId: string, roleId: string,
 ```
 
 **Reject — same delegation pattern:**
+
 ```typescript
 async reject(tenantId: string, brandId: string, userId: string, roleId: string, remarks?: string) {
   const brand = await this.getBrandOrThrow(tenantId, brandId);
@@ -269,6 +276,7 @@ This is the payoff of Module 2's generic design — **zero new approval logic** 
 ## 6. Brand Login — separate JWT context
 
 Brand login is **not** the same as internal-team login (Module 1's `AuthService`). Reasons:
+
 - Different table (`Brand` vs `User`)
 - Must check `approvalStatus === 'APPROVED'` before allowing login
 - JWT payload shape differs (`brandId` instead of `userId` + `roleId`)
@@ -293,7 +301,7 @@ async brandLogin(email: string, password: string) {
   }
 
   const payload = { sub: brand.id, brandId: brand.id, type: 'brand' };
-  const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+  const accessToken = this.jwtService.sign(payload, { expiresIn: '1d' });
 
   return { accessToken, brand: { id: brand.id, brandName: brand.brandName, email: brand.email } };
 }
@@ -306,12 +314,14 @@ A separate `BrandJwtStrategy` + `BrandAuthGuard` will be needed (parallel to Mod
 ## 7. Workflow Rule Setup Required (before this works end-to-end)
 
 Before registration can complete, Admin must configure a `WorkflowRule` for `module: 'brand_onboarding'` (via Module 2's endpoints) — e.g.:
+
 ```
 Name: Brand Onboarding Approval
 Module: brand_onboarding
 Steps: Step 1 → KAM role (initial KYC check)
        Step 2 → Business Head role (final approval)
 ```
+
 This is a one-time Admin setup step, not code.
 
 ---

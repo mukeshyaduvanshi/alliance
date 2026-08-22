@@ -69,6 +69,16 @@ export function useSetBrandOwnRate() {
   });
 }
 
+export function useDeleteBrandOwnRate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (rateId: string) => api.delete(`/brand/rates/${rateId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["brand", "rates"] });
+    },
+  });
+}
+
 export function useBrandProducts(page = 1) {
   return useQuery({
     queryKey: ["brand", "products", page],

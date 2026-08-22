@@ -91,12 +91,10 @@ export class AuthService {
       portal,
     };
 
-    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '1d' });
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
 
-    const tokenHash = createHash('sha256')
-      .update(refreshToken)
-      .digest('hex');
+    const tokenHash = createHash('sha256').update(refreshToken).digest('hex');
     await this.prisma.refreshToken.create({
       data: {
         userId: user.id,
@@ -168,7 +166,7 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(tokenPayload, {
-      expiresIn: '15m',
+      expiresIn: '1d',
     });
     const newRefreshToken = this.jwtService.sign(tokenPayload, {
       expiresIn: '7d',
@@ -177,7 +175,9 @@ export class AuthService {
     const storedTokens = await this.prisma.refreshToken.findMany({
       where: { userId: user.id },
     });
-    const presentedHash = createHash('sha256').update(refreshToken).digest('hex');
+    const presentedHash = createHash('sha256')
+      .update(refreshToken)
+      .digest('hex');
     let found = false;
     for (const stored of storedTokens) {
       if (stored.tokenHash === presentedHash) {

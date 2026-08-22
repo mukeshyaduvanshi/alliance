@@ -143,7 +143,7 @@ export class VendorService {
       role: 'VENDOR',
       email: vendor.email,
     };
-    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '1d' });
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
 
     return {
@@ -337,7 +337,7 @@ export class VendorService {
       role: 'VENDOR',
       email: vendor.email,
     };
-    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '1d' });
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
 
     await this.auditLogService.log({
@@ -406,7 +406,7 @@ export class VendorService {
       email: vendor.email,
     };
     const accessToken = this.jwtService.sign(tokenPayload, {
-      expiresIn: '15m',
+      expiresIn: '1d',
     });
     const newRefreshToken = this.jwtService.sign(tokenPayload, {
       expiresIn: '7d',
