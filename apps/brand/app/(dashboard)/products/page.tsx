@@ -28,7 +28,7 @@ import { Pencil, Plus } from "lucide-react";
 import { useBrandRates, useSetBrandOwnRate } from "@/features/queries";
 
 const REGIONS = Object.values(RegionEnum);
-const unitLabel = (u: RateUnit | string) => u.replace(/_/g, " ");
+const unitLabel = (u: RateUnit | string) => (u ? u.replace(/_/g, " ").toLowerCase() : "");
 
 interface BrandRateRow {
   id: string;
@@ -43,13 +43,15 @@ interface BrandRateRow {
 }
 
 function sizeText(r: BrandRateRow) {
+  const fmtNum = (val: string | number | null | undefined) =>
+    val != null && val !== "" ? String(Number(val)) : "—";
   const calcSize =
     r.calcWidth || r.calcHeight
-      ? `${r.calcWidth ?? "—"} x ${r.calcHeight ?? "—"}`
+      ? `${fmtNum(r.calcWidth)} x ${fmtNum(r.calcHeight)}`
       : null;
   const measSize =
     r.measWidth || r.measHeight
-      ? `${r.measWidth ?? "—"} x ${r.measHeight ?? "—"}`
+      ? `${fmtNum(r.measWidth)} x ${fmtNum(r.measHeight)}`
       : null;
   return [
     `${unitLabel(r.calcUnit)}${calcSize ? ` (${calcSize})` : ""}`,

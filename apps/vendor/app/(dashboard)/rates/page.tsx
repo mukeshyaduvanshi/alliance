@@ -31,7 +31,7 @@ import { Pencil, Plus } from "lucide-react";
 import { useSetVendorOwnRate, useVendorRates } from "@/features/queries";
 
 const REGIONS = Object.values(RegionEnum);
-const unitLabel = (u: RateUnit | string) => u.replace(/_/g, " ");
+const unitLabel = (u: RateUnit | string) => (u ? u.replace(/_/g, " ").toLowerCase() : "");
 
 interface VendorRateRow {
   id: string;
@@ -136,21 +136,28 @@ export default function VendorRatesPage() {
     {
       accessorKey: "label",
       header: "Rate",
-      cell: ({ row }) => (
-        <div>
-          <p className="font-medium">{row.original.label}</p>
-          <p className="text-muted-foreground text-xs">
-            {unitLabel(row.original.calcUnit)}
-            {row.original.calcWidth || row.original.calcHeight
-              ? ` (${row.original.calcWidth ?? "—"} x ${row.original.calcHeight ?? "—"})`
-              : ""}{" "}
-            · {unitLabel(row.original.measUnit)}
-            {row.original.measWidth || row.original.measHeight
-              ? ` (${row.original.measWidth ?? "—"} x ${row.original.measHeight ?? "—"})`
-              : ""}
-          </p>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const fmtNum = (val: string | number | null | undefined) =>
+          val != null && val !== "" ? String(Number(val)) : "—";
+        const calcSize =
+          row.original.calcWidth || row.original.calcHeight
+            ? ` (${fmtNum(row.original.calcWidth)} x ${fmtNum(row.original.calcHeight)})`
+            : "";
+        const measSize =
+          row.original.measWidth || row.original.measHeight
+            ? ` (${fmtNum(row.original.measWidth)} x ${fmtNum(row.original.measHeight)})`
+            : "";
+        return (
+          <div>
+            <p className="font-medium">{row.original.label}</p>
+            <p className="text-muted-foreground text-xs">
+              {unitLabel(row.original.calcUnit)}
+              {calcSize} · {unitLabel(row.original.measUnit)}
+              {measSize}
+            </p>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "vendorRates",

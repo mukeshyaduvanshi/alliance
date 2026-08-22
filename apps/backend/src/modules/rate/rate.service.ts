@@ -172,10 +172,10 @@ export class RateService {
       void _adminRegions;
       return {
         ...rest,
-        calcWidth: r.calcWidth?.toFixed(4) ?? null,
-        calcHeight: r.calcHeight?.toFixed(4) ?? null,
-        measWidth: r.measWidth?.toFixed(4) ?? null,
-        measHeight: r.measHeight?.toFixed(4) ?? null,
+        calcWidth: r.calcWidth != null ? String(Number(r.calcWidth)) : null,
+        calcHeight: r.calcHeight != null ? String(Number(r.calcHeight)) : null,
+        measWidth: r.measWidth != null ? String(Number(r.measWidth)) : null,
+        measHeight: r.measHeight != null ? String(Number(r.measHeight)) : null,
         brandRates: own,
       };
     });
@@ -244,10 +244,10 @@ export class RateService {
       void _adminRegions;
       return {
         ...rest,
-        calcWidth: r.calcWidth?.toFixed(4) ?? null,
-        calcHeight: r.calcHeight?.toFixed(4) ?? null,
-        measWidth: r.measWidth?.toFixed(4) ?? null,
-        measHeight: r.measHeight?.toFixed(4) ?? null,
+        calcWidth: r.calcWidth != null ? String(Number(r.calcWidth)) : null,
+        calcHeight: r.calcHeight != null ? String(Number(r.calcHeight)) : null,
+        measWidth: r.measWidth != null ? String(Number(r.measWidth)) : null,
+        measHeight: r.measHeight != null ? String(Number(r.measHeight)) : null,
         vendorRates: own,
       };
     });
@@ -277,10 +277,10 @@ export class RateService {
     const { regions, brandRates, vendorRates, ...rest } = rate;
     return {
       ...rest,
-      calcWidth: rest.calcWidth?.toFixed(4) ?? null,
-      calcHeight: rest.calcHeight?.toFixed(4) ?? null,
-      measWidth: rest.measWidth?.toFixed(4) ?? null,
-      measHeight: rest.measHeight?.toFixed(4) ?? null,
+      calcWidth: rest.calcWidth != null ? String(Number(rest.calcWidth)) : null,
+      calcHeight: rest.calcHeight != null ? String(Number(rest.calcHeight)) : null,
+      measWidth: rest.measWidth != null ? String(Number(rest.measWidth)) : null,
+      measHeight: rest.measHeight != null ? String(Number(rest.measHeight)) : null,
       regions: regions.map((r) => ({
         id: r.id,
         region: r.region,
