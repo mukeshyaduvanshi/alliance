@@ -33,6 +33,13 @@ export class RateController {
   }
 
   @RequirePermission('rate', 'VIEW')
+  @Get('brand/:brandId')
+  async listForBrand(@Req() req: any, @Param('brandId') brandId: string) {
+    const rates = await this.rateService.listRatesForBrand(req.user.tenantId, brandId);
+    return rates.filter((r) => r.brandRates && r.brandRates.length > 0);
+  }
+
+  @RequirePermission('rate', 'VIEW')
   @Get(':id')
   findOne(@Req() req: any, @Param('id') id: string) {
     return this.rateService.findOne(req.user.tenantId, id);

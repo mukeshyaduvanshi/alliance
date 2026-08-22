@@ -6,6 +6,7 @@ import type {
   OrderDto,
   Paginated,
   PurchaseOrderDto,
+  RateDto,
 } from "@cj/types";
 
 import { api } from "@/lib/api";
@@ -51,6 +52,14 @@ export function useBrandOrders(brandId: string, page = 1) {
     queryKey: ["orders", "brand", brandId, page],
     queryFn: () =>
       api.get<Paginated<OrderDto>>(`/orders?brandId=${brandId}&page=${page}&pageSize=${20}`),
+    enabled: Boolean(brandId),
+  });
+}
+
+export function useBrandRateComparison(brandId: string) {
+  return useQuery({
+    queryKey: ["rates", "brand", brandId],
+    queryFn: () => api.get<RateDto[]>(`/rates/brand/${brandId}`),
     enabled: Boolean(brandId),
   });
 }

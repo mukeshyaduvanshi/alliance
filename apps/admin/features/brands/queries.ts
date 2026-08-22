@@ -5,7 +5,10 @@ import type {
   BrandDto,
   BrandManagerDto,
   BusinessModelType,
+  OrderDto,
   Paginated,
+  PurchaseOrderDto,
+  RateDto,
   UserDto,
 } from "@cj/types";
 
@@ -139,5 +142,33 @@ export function useRemoveManager() {
       qc.invalidateQueries({ queryKey: ["brands", variables.brandId, "managers"] });
       qc.invalidateQueries({ queryKey: ["brands"] });
     },
+  });
+}
+
+export function useBrandRateComparison(brandId: string) {
+  return useQuery({
+    queryKey: ["rates", "brand", brandId],
+    queryFn: () => api.get<RateDto[]>(`/rates/brand/${brandId}`),
+    enabled: Boolean(brandId),
+  });
+}
+
+export function useBrandPurchaseOrders(brandId: string, page = 1) {
+  return useQuery({
+    queryKey: ["brands", brandId, "purchase-orders", page],
+    queryFn: () =>
+      api.get<Paginated<PurchaseOrderDto>>(
+        `/brands/${brandId}/purchase-orders?page=${page}&pageSize=${20}`
+      ),
+    enabled: Boolean(brandId),
+  });
+}
+
+export function useBrandOrders(brandId: string, page = 1) {
+  return useQuery({
+    queryKey: ["orders", "brand", brandId, page],
+    queryFn: () =>
+      api.get<Paginated<OrderDto>>(`/orders?brandId=${brandId}&page=${page}&pageSize=${20}`),
+    enabled: Boolean(brandId),
   });
 }

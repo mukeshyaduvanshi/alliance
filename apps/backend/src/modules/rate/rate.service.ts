@@ -173,15 +173,19 @@ export class RateService {
         brandId: br.brandId,
         brandName: br.brand.brandName,
       }));
-      const { brandRates: brandRatesUnused, regions: _adminRegions, ...rest } = r;
-      void brandRatesUnused;
-      void _adminRegions;
+      const adminRegions = r.regions.map((reg) => ({
+        id: reg.id,
+        region: reg.region,
+        rate: reg.rate.toFixed(2),
+      }));
+      const { brandRates: _b, regions: _r, ...rest } = r;
       return {
         ...rest,
         calcWidth: r.calcWidth != null ? String(Number(r.calcWidth)) : null,
         calcHeight: r.calcHeight != null ? String(Number(r.calcHeight)) : null,
         measWidth: r.measWidth != null ? String(Number(r.measWidth)) : null,
         measHeight: r.measHeight != null ? String(Number(r.measHeight)) : null,
+        regions: adminRegions,
         brandRates: own,
       };
     });

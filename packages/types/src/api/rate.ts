@@ -30,6 +30,7 @@ export interface RateDto {
   updatedAt: string;
   regions: RateRegionRateDto[];
   brandQuotes?: RateQuoteDto[];
+  brandRates?: RateQuoteDto[];
   vendorQuotes?: RateQuoteDto[];
 }
 
