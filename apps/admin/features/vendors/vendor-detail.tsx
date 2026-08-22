@@ -3,15 +3,21 @@
 import * as React from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
-import { Check, UserRound, X, Plus } from "lucide-react";
+import { Check, Plus, UserRound, X } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
 
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
   Badge,
   Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
+  DataTable,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -34,10 +40,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   Textarea,
 } from "@cj/ui";
 import { BusinessModelType } from "@cj/types";
-import type { Region, VendorDto } from "@cj/types";
+import type { OrderDto, RateDto, Region, VendorDto } from "@cj/types";
 import { Region as RegionEnum } from "@cj/types";
 import { formatDateTime, formatINR } from "@cj/utils";
 
@@ -47,17 +57,189 @@ import {
   useAssignVendorManagers,
   useAssignVendorRate,
   useProductsForRates,
-  useRemoveVendorManager,
   useRejectVendor,
+  useRemoveVendorManager,
   useSetVendorBusinessModel,
   useVendor,
   useVendorBusinessModel,
   useVendorManagers,
+  useVendorOrders,
+  useVendorRateComparison,
   useVendorRates,
 } from "./queries";
 
 const BUSINESS_MODEL_OPTIONS = Object.values(BusinessModelType);
 const REGIONS = Object.values(RegionEnum);
+
+const orderColumns: ColumnDef<OrderDto>[] = [
+  {
+    accessorKey: "orderNumber",
+    header: "Order",
+    cell: ({ row }) => (
+      <div>
+        <p className="font-medium">{row.original.orderNumber}</p>
+        <p className="text-muted-foreground text-xs">{row.original.siteLocation}</p>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "brand.brandName",
+    header: "Brand",
+    cell: ({ row }) => row.original.brand?.brandName ?? "—",
+  },
+  {
+    accessorKey: "totalAmount",
+    header: "Amount",
+    cell: ({ row }) => formatINR(row.original.totalAmount),
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => (
+      <Badge variant={row.original.status === "CANCELLED" ? "destructive" : "outline"}>
+        {row.original.status}
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: "createdAt",
+    header: "Created",
+    cell: ({ row }) => formatDateTime(row.original.createdAt),
+  },
+];
+
+function unitLabel(u: string) {
+  return u ? u.replace(/_/g, " ").toLowerCase() : "";
+}
+
+function fmtNum(val: string | number | null | undefined) {
+  return val != null && val !== "" ? String(Number(val)) : "—";
+}
+
+function VendorRatesCard({ vendorId }: { vendorId: string }) {
+  const { data: rates, isLoading, isError, refetch } = useVendorRateComparison(vendorId);
+
+  if (isLoading) return <LoadingState rows={4} />;
+  if (isError) return <ErrorState title="Failed to load rates" description="Could not fetch vendor rates." onRetry={() => refetch()} />;
+
+  if (!rates || rates.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+          <p className="text-muted-foreground font-medium">No rates configured</p>
+          <p className="text-muted-foreground text-xs">This vendor has no active rate catalog entries.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <Accordion type="multiple" className="space-y-3">
+        {rates.map((rateItem: RateDto) => {
+          const calcSize =
+            rateItem.calcWidth || rateItem.calcHeight
+              ? `${fmtNum(rateItem.calcWidth)} × ${fmtNum(rateItem.calcHeight)}`
+              : null;
+          const measSize =
+            rateItem.measWidth || rateItem.measHeight
+              ? `${fmtNum(rateItem.measWidth)} × ${fmtNum(rateItem.measHeight)}`
+              : null;
+
+          return (
+            <AccordionItem
+              key={rateItem.id}
+              value={rateItem.id}
+              className="rounded-lg border bg-card px-4 py-2 shadow-xs transition-all hover:shadow-sm"
+            >
+              <AccordionTrigger className="flex items-center justify-between gap-4 py-3 hover:no-underline">
+                <div className="flex flex-1 flex-col text-left">
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-foreground text-base">
+                      {rateItem.label}
+                    </span>
+                    <Badge variant={rateItem.isActive ? "default" : "secondary"}>
+                      {rateItem.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
+                  <span className="text-muted-foreground text-xs mt-1">
+                    Calc: <strong className="text-foreground">{unitLabel(rateItem.calcUnit)}</strong>
+                    {calcSize ? ` (${calcSize})` : ""} · Meas:{" "}
+                    <strong className="text-foreground">{unitLabel(rateItem.measUnit)}</strong>
+                    {measSize ? ` (${measSize})` : ""}
+                  </span>
+                </div>
+              </AccordionTrigger>
+
+              <AccordionContent className="pt-2 pb-3 border-t mt-2">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground tracking-wider">
+                    Region-wise Rate Comparison (Vendor Rate vs Master Rate)
+                  </p>
+                  {rateItem.regions && rateItem.regions.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
+                      {rateItem.regions.map((r: { id: string; region: Region; rate: string }) => {
+                        const vendorRateObj = rateItem.vendorRates?.find((vr) => vr.region === r.region);
+                        const masterRateNum = Number(r.rate);
+                        const vendorRateNum = vendorRateObj ? Number(vendorRateObj.rate) : null;
+
+                        let colorClass = "text-foreground font-semibold";
+                        let bgClass = "bg-muted/40 border-muted";
+
+                        if (vendorRateNum !== null) {
+                          if (vendorRateNum > masterRateNum) {
+                            colorClass = "text-red-600 font-bold";
+                            bgClass = "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50";
+                          } else if (vendorRateNum < masterRateNum) {
+                            colorClass = "text-emerald-600 font-bold";
+                            bgClass = "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/50";
+                          }
+                        }
+
+                        return (
+                          <div
+                            key={r.id}
+                            className={`flex flex-col rounded-md border p-3 ${bgClass} transition-colors`}
+                          >
+                            <span className="text-xs font-semibold text-muted-foreground">
+                              {unitLabel(r.region)}
+                            </span>
+                            <div className="mt-1 flex items-baseline justify-between gap-2">
+                              <div>
+                                <span className="text-[10px] text-muted-foreground block">Master Rate</span>
+                                <span className="text-sm font-medium text-foreground">
+                                  ₹{masterRateNum.toLocaleString("en-IN")}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] text-muted-foreground block">Vendor Rate</span>
+                                {vendorRateNum !== null ? (
+                                  <span className={`text-base ${colorClass}`}>
+                                    ₹{vendorRateNum.toLocaleString("en-IN")}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">Not set</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">
+                      No region rates configured for this item.
+                    </p>
+                  )}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
+      </Accordion>
+    </div>
+  );
+}
 
 function AssignRateDialog({
   vendorId,
@@ -231,6 +413,9 @@ export function VendorDetail() {
   const params = useParams<{ id: string }>();
   const id = params.id;
 
+  const [tab, setTab] = React.useState("overview");
+  const [orderPage, setOrderPage] = React.useState(1);
+
   const { data: vendor, isLoading, isError, refetch } = useVendor(id);
   const { data: users } = useInternalUsers();
   const { data: businessModel, refetch: refetchBm } = useVendorBusinessModel(id);
@@ -238,6 +423,7 @@ export function VendorDetail() {
   const { data: managers, refetch: refetchManagers } = useVendorManagers(id);
   const assignManagers = useAssignVendorManagers();
   const removeManager = useRemoveVendorManager();
+  const { data: orders, isLoading: ordersLoading, isError: ordersError, refetch: refetchOrders } = useVendorOrders(id, orderPage);
 
   const [selectedModel, setSelectedModel] = React.useState<string>("");
   const [commission, setCommission] = React.useState<string>("");
@@ -313,9 +499,7 @@ export function VendorDetail() {
     );
   }
 
-  if (isLoading) return <LoadingState rows={4} />;
-
-  if (!vendor) return null;
+  if (isLoading || !vendor) return <LoadingState rows={4} />;
 
   const bp = vendor.businessProfile;
 
@@ -326,241 +510,292 @@ export function VendorDetail() {
         description={`${vendor.id.slice(0, 8)} · ${vendor.email ?? "—"}`}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Business Profile</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Legal Name</span>
-              <span>{bp?.legalName ?? "—"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Business Type</span>
-              <Badge variant="outline">{bp?.businessType ?? "—"}</Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">GST</span>
-              <span>{bp?.gstNumber ?? "—"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">PAN</span>
-              <span>{bp?.panNumber ?? "—"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Contact Person</span>
-              <span>{vendor.contactPersonName ?? "—"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Phone</span>
-              <span>{vendor.phone ?? "—"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Address</span>
-              <span className="text-right">
-                {bp ? `${bp.addressLine1}, ${bp.city}, ${bp.state} ${bp.pincode}` : "—"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Approval</span>
-              <div className="flex items-center gap-2">
-                <Badge variant={vendor.approvalStatus === "APPROVED" ? "default" : "outline"}>
-                  {vendor.approvalStatus}
-                </Badge>
-                {vendor.approvalStatus === "PENDING" && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-6 gap-1 px-2 text-xs"
-                      onClick={() => setDecision("APPROVE")}
-                    >
-                      <Check className="size-3 text-emerald-500" />
-                      Approve
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-6 gap-1 px-2 text-xs"
-                      onClick={() => setDecision("REJECT")}
-                    >
-                      <X className="size-3 text-red-500" />
-                      Reject
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Registered</span>
-              <span>{formatDateTime(vendor.createdAt)}</span>
-            </div>
-          </CardContent>
-        </Card>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="rates">Rates</TabsTrigger>
+          <TabsTrigger value="managers">Assigned Managers</TabsTrigger>
+          <TabsTrigger value="business-model">Business Model</TabsTrigger>
+          <TabsTrigger value="product-rates">Product Rates</TabsTrigger>
+          <TabsTrigger value="orders">Orders</TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Business Model</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Select value={selectedModel || undefined} onValueChange={setSelectedModel}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select business model" />
-              </SelectTrigger>
-              <SelectContent>
-                {BUSINESS_MODEL_OPTIONS.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {(selectedModel === "MEDIATOR_MODEL" || selectedModel === "HYBRID_MODEL") && (
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">
-                  Commission % (0-100)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2"
-                  value={commission}
-                  onChange={(e) => setCommission(e.target.value)}
-                />
+        <TabsContent value="overview" className="pt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Business Profile</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Legal Name</span>
+                <span>{bp?.legalName ?? "—"}</span>
               </div>
-            )}
-            {(selectedModel === "VENDOR_MODEL" || selectedModel === "HYBRID_MODEL") && (
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">
-                  Markup % (0-100)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2"
-                  value={markup}
-                  onChange={(e) => setMarkup(e.target.value)}
-                />
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Business Type</span>
+                <Badge variant="outline">{bp?.businessType ?? "—"}</Badge>
               </div>
-            )}
-            <Button onClick={handleSaveBusinessModel} disabled={!selectedModel || setBusinessModel.isPending}>
-              {setBusinessModel.isPending ? "Saving..." : "Save Business Model"}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Assigned Managers</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <Select value={kamUserId || undefined} onValueChange={setKamUserId}>
-              <SelectTrigger className="w-72">
-                <SelectValue placeholder="Select manager user" />
-              </SelectTrigger>
-              <SelectContent>
-                {users?.data?.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.fullName} ({u.email})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={handleAddManager} disabled={!kamUserId || assignManagers.isPending}>
-              {assignManagers.isPending ? "Assigning..." : "Add Manager"}
-            </Button>
-          </div>
-
-          <div className="space-y-2">
-            {managers?.length === 0 && (
-              <p className="text-muted-foreground text-sm">
-                No managers assigned yet. Add a manager to give them visibility of this vendor.
-              </p>
-            )}
-            {managers?.map((m) => (
-              <div key={m.userId} className="flex items-center justify-between rounded-md border p-3">
-                <div className="flex items-center gap-3">
-                  <UserRound className="size-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">{m.fullName}</p>
-                    <p className="text-muted-foreground text-xs">
-                      {m.email}
-                      {m.role ? ` · ${m.role.name}` : ""}
-                    </p>
-                  </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">GST</span>
+                <span>{bp?.gstNumber ?? "—"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">PAN</span>
+                <span>{bp?.panNumber ?? "—"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Contact Person</span>
+                <span>{vendor.contactPersonName ?? "—"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Phone</span>
+                <span>{vendor.phone ?? "—"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Address</span>
+                <span className="text-right">
+                  {bp ? `${bp.addressLine1}, ${bp.city}, ${bp.state} ${bp.pincode}` : "—"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Approval</span>
+                <div className="flex items-center gap-2">
+                  <Badge variant={vendor.approvalStatus === "APPROVED" ? "default" : "outline"}>
+                    {vendor.approvalStatus}
+                  </Badge>
+                  {vendor.approvalStatus === "PENDING" && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 gap-1 px-2 text-xs"
+                        onClick={() => setDecision("APPROVE")}
+                      >
+                        <Check className="size-3 text-emerald-500" />
+                        Approve
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 gap-1 px-2 text-xs"
+                        onClick={() => setDecision("REJECT")}
+                      >
+                        <X className="size-3 text-red-500" />
+                        Reject
+                      </Button>
+                    </>
+                  )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => handleRemoveManager(m.userId)}
-                  disabled={removeManager.isPending}
-                >
-                  <X className="size-4 text-destructive" />
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Registered</span>
+                <span>{formatDateTime(vendor.createdAt)}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="rates" className="pt-4">
+          <VendorRatesCard vendorId={id} />
+        </TabsContent>
+
+        <TabsContent value="managers" className="pt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Assigned Managers</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <Select value={kamUserId || undefined} onValueChange={setKamUserId}>
+                  <SelectTrigger className="w-72">
+                    <SelectValue placeholder="Select manager user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users?.data?.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.fullName} ({u.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleAddManager} disabled={!kamUserId || assignManagers.isPending}>
+                  {assignManagers.isPending ? "Assigning..." : "Add Manager"}
                 </Button>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader className="flex-row items-center justify-between">
-          <CardTitle>Assigned Rates</CardTitle>
-          <Button onClick={() => setAssignOpen(true)}>
-            <Plus className="size-4" />
-            Assign Rate
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {assignOpen && (
-            <AssignRateDialog vendorId={id} open={assignOpen} onOpenChange={setAssignOpen} />
-          )}
-          {ratesError ? (
-            <ErrorState title="Failed to load rates" description="Could not fetch vendor rates." onRetry={() => refetchRates()} />
-          ) : ratesLoading ? (
-            <LoadingState rows={4} />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Region</TableHead>
-                  <TableHead className="text-right">Rate</TableHead>
-                  <TableHead>Updated</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(rates ?? []).map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-medium">{r.productName}</TableCell>
-                    <TableCell>{r.category ?? "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{r.region}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {r.rate != null ? formatINR(r.rate) : "—"}
-                    </TableCell>
-                    <TableCell>{formatDateTime(r.updatedAt)}</TableCell>
-                  </TableRow>
-                ))}
-                {!rates?.length && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-muted-foreground text-center">
-                      No rates assigned. Assign the first rate.
-                    </TableCell>
-                  </TableRow>
+              <div className="space-y-2">
+                {managers?.length === 0 && (
+                  <p className="text-muted-foreground text-sm">
+                    No managers assigned yet. Add a manager to give them visibility of this vendor.
+                  </p>
                 )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                {managers?.map((m) => (
+                  <div key={m.userId} className="flex items-center justify-between rounded-md border p-3">
+                    <div className="flex items-center gap-3">
+                      <UserRound className="size-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">{m.fullName}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {m.email}
+                          {m.role ? ` · ${m.role.name}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => handleRemoveManager(m.userId)}
+                      disabled={removeManager.isPending}
+                    >
+                      <X className="size-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="business-model" className="pt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Business Model</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Select value={selectedModel || undefined} onValueChange={setSelectedModel}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select business model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BUSINESS_MODEL_OPTIONS.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(selectedModel === "MEDIATOR_MODEL" || selectedModel === "HYBRID_MODEL") && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">
+                    Commission % (0-100)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2"
+                    value={commission}
+                    onChange={(e) => setCommission(e.target.value)}
+                  />
+                </div>
+              )}
+              {(selectedModel === "VENDOR_MODEL" || selectedModel === "HYBRID_MODEL") && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">
+                    Markup % (0-100)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2"
+                    value={markup}
+                    onChange={(e) => setMarkup(e.target.value)}
+                  />
+                </div>
+              )}
+              <Button onClick={handleSaveBusinessModel} disabled={!selectedModel || setBusinessModel.isPending}>
+                {setBusinessModel.isPending ? "Saving..." : "Save Business Model"}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="product-rates" className="pt-4">
+          <Card>
+            <CardHeader className="flex-row items-center justify-between">
+              <CardTitle>Assigned Product Rates</CardTitle>
+              <Button onClick={() => setAssignOpen(true)}>
+                <Plus className="size-4" />
+                Assign Rate
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {assignOpen && (
+                <AssignRateDialog vendorId={id} open={assignOpen} onOpenChange={setAssignOpen} />
+              )}
+              {ratesError ? (
+                <ErrorState title="Failed to load rates" description="Could not fetch vendor rates." onRetry={() => refetchRates()} />
+              ) : ratesLoading ? (
+                <LoadingState rows={4} />
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Region</TableHead>
+                      <TableHead className="text-right">Rate</TableHead>
+                      <TableHead>Updated</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(rates ?? []).map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-medium">{r.productName}</TableCell>
+                        <TableCell>{r.category ?? "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{r.region}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {r.rate != null ? formatINR(r.rate) : "—"}
+                        </TableCell>
+                        <TableCell>{formatDateTime(r.updatedAt)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {!rates?.length && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-muted-foreground text-center">
+                          No rates assigned. Assign the first rate.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="orders" className="pt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Orders</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {ordersError ? (
+                <ErrorState
+                  title="Failed to load orders"
+                  description="Could not fetch vendor orders."
+                  onRetry={() => refetchOrders()}
+                />
+              ) : ordersLoading ? (
+                <LoadingState rows={4} />
+              ) : (
+                <DataTable
+                  columns={orderColumns}
+                  data={orders?.data ?? []}
+                  totalRows={orders?.meta.total ?? 0}
+                  pageIndex={orderPage}
+                  pageSize={20}
+                  onPageChange={setOrderPage}
+                  emptyTitle="No orders"
+                  emptyDescription="No orders assigned to this vendor."
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {decision && vendor && (
         <ApprovalDialog

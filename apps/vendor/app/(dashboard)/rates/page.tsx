@@ -3,9 +3,16 @@
 import * as React from "react";
 import { toast } from "sonner";
 import {
-  Badge,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
   Button,
-  DataTable,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -23,15 +30,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@cj/ui";
-import type { ColumnDef } from "@tanstack/react-table";
 import type { RateUnit, Region } from "@cj/types";
 import { Region as RegionEnum } from "@cj/types";
-import { Pencil, Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 
-import { useSetVendorOwnRate, useVendorRates } from "@/features/queries";
+import { useDeleteVendorOwnRate, useSetVendorOwnRate, useVendorRates } from "@/features/queries";
 
 const REGIONS = Object.values(RegionEnum);
-const unitLabel = (u: RateUnit | string) => (u ? u.replace(/_/g, " ").toLowerCase() : "");
+const unitLabel = (u: RateUnit | string) =>
+  u ? u.replace(/_/g, " ").toLowerCase() : "";
 
 interface VendorRateRow {
   id: string;
@@ -42,7 +49,157 @@ interface VendorRateRow {
   measUnit: RateUnit;
   measWidth?: string | null;
   measHeight?: string | null;
-  vendorRates: { rateId: string; region: Region; rate: string; vendorId: string; vendorName: string }[];
+  vendorRates: {
+    rateId: string;
+    region: Region;
+    rate: string;
+    vendorId: string;
+    vendorName: string;
+  }[];
+}
+
+function sizeText(r: VendorRateRow) {
+  const fmtNum = (val: string | number | null | undefined) =>
+    val != null && val !== "" ? String(Number(val)) : "—";
+  const calcSize =
+    r.calcWidth || r.calcHeight
+      ? `${fmtNum(r.calcWidth)} x ${fmtNum(r.calcHeight)}`
+      : null;
+  const measSize =
+    r.measWidth || r.measHeight
+      ? `${fmtNum(r.measWidth)} x ${fmtNum(r.measHeight)}`
+      : null;
+  return [
+    `${unitLabel(r.calcUnit)}${calcSize ? ` (${calcSize})` : ""}`,
+    `${unitLabel(r.measUnit)}${measSize ? ` (${measSize})` : ""}`,
+  ].join(" · ");
+}
+
+function AddRateSingleModal({
+  rates,
+  open,
+  onOpenChange,
+}: {
+  rates: VendorRateRow[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const setOwn = useSetVendorOwnRate();
+  const [selectedId, setSelectedId] = React.useState("");
+  const [values, setValues] = React.useState<Record<string, string>>({});
+  const [saving, setSaving] = React.useState(false);
+
+  const selected = rates.find((r) => r.id === selectedId) ?? null;
+
+  React.useEffect(() => {
+    if (open) {
+      setSelectedId("");
+      setValues({});
+    }
+  }, [open]);
+
+  function handleSelect(id: string) {
+    setSelectedId(id);
+    const rate = rates.find((r) => r.id === id);
+    const next: Record<string, string> = {};
+    if (rate) {
+      for (const r of REGIONS) {
+        const existing = rate.vendorRates.find((vr) => vr.region === r);
+        next[r] = existing ? String(Number(existing.rate)) : "";
+      }
+    }
+    setValues(next);
+  }
+
+  async function handleSubmit() {
+    if (!selected) return;
+    try {
+      setSaving(true);
+      const entries = REGIONS.filter((r) => values[r] !== "");
+      await Promise.all(
+        entries.map((r) =>
+          setOwn.mutateAsync({
+            rateId: selected.id,
+            region: r,
+            rate: Number(values[r]),
+          }),
+        ),
+      );
+      toast.success("Rates saved");
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save rates");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add Rate</DialogTitle>
+          <DialogDescription>
+            Select a rate item and set your price per region in a single modal.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Select Rate Item</Label>
+            <Select value={selectedId ?? ""} onValueChange={handleSelect}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a rate item" />
+              </SelectTrigger>
+              <SelectContent>
+                {rates.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selected && (
+              <p className="text-muted-foreground text-xs font-medium pt-1">
+                {sizeText(selected)}
+              </p>
+            )}
+          </div>
+
+          {selected && (
+            <div className="space-y-3 pt-2 border-t">
+              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                Set Price Per Region
+              </p>
+              {REGIONS.map((r) => (
+                <div key={r} className="flex items-center justify-between gap-3">
+                  <Label className="w-40 shrink-0 text-xs font-medium">
+                    {unitLabel(r)}
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={values[r] ?? ""}
+                    onChange={(e) =>
+                      setValues((prev) => ({ ...prev, [r]: e.target.value }))
+                    }
+                    placeholder="Rate (₹)"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={!selected || saving}>
+            {saving ? "Saving..." : "Save Rates"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function RateEditDialog({
@@ -71,10 +228,14 @@ function RateEditDialog({
       const entries = REGIONS.filter((r) => values[r] !== "");
       await Promise.all(
         entries.map((r) =>
-          setOwn.mutateAsync({ rateId: rate.id, region: r, rate: Number(values[r]) })
-        )
+          setOwn.mutateAsync({
+            rateId: rate.id,
+            region: r,
+            rate: Number(values[r]),
+          }),
+        ),
       );
-      toast.success("Rates saved");
+      toast.success("Rates updated");
       onOpenChange(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save rates");
@@ -85,20 +246,26 @@ function RateEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Set My Rates</DialogTitle>
-          <DialogDescription>{rate.label}</DialogDescription>
+          <DialogTitle>Edit My Rates</DialogTitle>
+          <DialogDescription>
+            {rate.label} — {sizeText(rate)}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           {REGIONS.map((r) => (
             <div key={r} className="flex items-center justify-between gap-3">
-              <Label className="w-40 shrink-0 text-xs font-medium">{unitLabel(r)}</Label>
+              <Label className="w-40 shrink-0 text-xs font-medium">
+                {unitLabel(r)}
+              </Label>
               <Input
                 type="number"
                 min={0}
                 value={values[r] ?? ""}
-                onChange={(e) => setValues((prev) => ({ ...prev, [r]: e.target.value }))}
+                onChange={(e) =>
+                  setValues((prev) => ({ ...prev, [r]: e.target.value }))
+                }
                 placeholder="Rate (₹)"
               />
             </div>
@@ -117,82 +284,59 @@ function RateEditDialog({
   );
 }
 
+function DeleteVendorRateDialog({ rate }: { rate: VendorRateRow }) {
+  const deleteRate = useDeleteVendorOwnRate();
+  async function handleDelete() {
+    try {
+      await deleteRate.mutateAsync(rate.id);
+      toast.success("Rate entries deleted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete rate");
+    }
+  }
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive">
+          <Trash2 className="size-4" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete custom rate?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will remove your custom price entries for "{rate.label}".
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={handleDelete}
+            disabled={deleteRate.isPending}
+          >
+            {deleteRate.isPending ? "Deleting..." : "Delete"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 export default function VendorRatesPage() {
   const { data, isLoading, isError, refetch } = useVendorRates();
   const rates = (data ?? []) as unknown as VendorRateRow[];
-  const [selectedId, setSelectedId] = React.useState("");
   const [adding, setAdding] = React.useState(false);
   const [editing, setEditing] = React.useState<VendorRateRow | null>(null);
 
-  const selected = rates.find((r) => r.id === selectedId) ?? null;
-
-  function handleSelect(id: string) {
-    setSelectedId(id);
-    const rate = rates.find((r) => r.id === id);
-    if (rate) setEditing(rate);
-  }
-
-  const columns: ColumnDef<VendorRateRow>[] = [
-    {
-      accessorKey: "label",
-      header: "Rate",
-      cell: ({ row }) => {
-        const fmtNum = (val: string | number | null | undefined) =>
-          val != null && val !== "" ? String(Number(val)) : "—";
-        const calcSize =
-          row.original.calcWidth || row.original.calcHeight
-            ? ` (${fmtNum(row.original.calcWidth)} x ${fmtNum(row.original.calcHeight)})`
-            : "";
-        const measSize =
-          row.original.measWidth || row.original.measHeight
-            ? ` (${fmtNum(row.original.measWidth)} x ${fmtNum(row.original.measHeight)})`
-            : "";
-        return (
-          <div>
-            <p className="font-medium">{row.original.label}</p>
-            <p className="text-muted-foreground text-xs">
-              {unitLabel(row.original.calcUnit)}
-              {calcSize} · {unitLabel(row.original.measUnit)}
-              {measSize}
-            </p>
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "vendorRates",
-      header: "My Rates",
-      cell: ({ row }) => {
-        const rs = row.original.vendorRates;
-        if (rs.length === 0) return <Badge variant="outline">Not set</Badge>;
-        return (
-          <div className="space-y-0.5">
-            {rs.map((r, i) => (
-              <div key={i} className="text-xs">
-                <span className="text-muted-foreground">{unitLabel(r.region)}:</span>{" "}
-                <span className="font-medium">₹{Number(r.rate).toLocaleString("en-IN")}</span>
-              </div>
-            ))}
-          </div>
-        );
-      },
-    },
-    {
-      id: "actions",
-      header: "",
-      cell: ({ row }) => (
-        <Button variant="ghost" size="icon-sm" onClick={() => setEditing(row.original)}>
-          <Pencil className="size-4" />
-        </Button>
-      ),
-    },
-  ];
+  const added = rates.filter((r) => r.vendorRates.length > 0);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Rate Card"
-        description="Pick a rate to set your own price per region"
+        title="Rates"
+        description="Select a rate item from the catalog and set your price per region"
         actions={
           <Button onClick={() => setAdding(true)}>
             <Plus className="size-4" />
@@ -201,71 +345,74 @@ export default function VendorRatesPage() {
         }
       />
       {isError ? (
-        <ErrorState title="Failed to load rate card" description="Could not fetch rates." onRetry={() => refetch()} />
+        <ErrorState
+          title="Failed to load rate card"
+          description="Could not fetch rates."
+          onRetry={() => refetch()}
+        />
       ) : isLoading ? (
         <LoadingState rows={4} />
       ) : (
         <>
-          <Dialog open={adding} onOpenChange={setAdding}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Rate</DialogTitle>
-                <DialogDescription>
-                  Select a rate label to set your own price for it.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Rate</Label>
-                  <Select value={selectedId || undefined} onValueChange={handleSelect}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a rate" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {rates.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {r.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {selected && (
-                    <p className="text-muted-foreground text-xs">
-                      {unitLabel(selected.calcUnit)}
-                      {selected.calcWidth || selected.calcHeight
-                        ? ` (${selected.calcWidth ?? "—"} x ${selected.calcHeight ?? "—"})`
-                        : ""}{" "}
-                      · {unitLabel(selected.measUnit)}
-                      {selected.measWidth || selected.measHeight
-                        ? ` (${selected.measWidth ?? "—"} x ${selected.measHeight ?? "—"})`
-                        : ""}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setAdding(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => { setAdding(false); if (selected) setEditing(selected); }} disabled={!selected}>
-                  Continue
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <DataTable
-            columns={columns}
-            data={rates}
-            totalRows={rates.length}
-            pageIndex={1}
-            pageSize={20}
-            emptyTitle="No rates yet"
-            emptyDescription="The admin catalog is empty right now."
+          <AddRateSingleModal
+            rates={rates}
+            open={adding}
+            onOpenChange={setAdding}
           />
 
+          <div className="rounded-md border">
+            {added.length === 0 ? (
+              <p className="p-6 text-center text-sm text-muted-foreground">
+                You have not set any rates yet. Click "Add Rate" to start.
+              </p>
+            ) : (
+              <div className="divide-y">
+                {added.map((r) => (
+                  <div
+                    key={r.id}
+                    className="flex items-center justify-between px-4 py-3"
+                  >
+                    <div>
+                      <p className="font-medium">{r.label}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {sizeText(r)}
+                      </p>
+                      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
+                        {r.vendorRates.map((vr, i) => (
+                          <span key={i} className="text-xs">
+                            <span className="text-muted-foreground">
+                              {unitLabel(vr.region)}:
+                            </span>{" "}
+                            <span className="font-medium">
+                              ₹{Number(vr.rate).toLocaleString("en-IN")}
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => setEditing(r)}
+                        title="Edit rate"
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                      <DeleteVendorRateDialog rate={r} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {editing && (
-            <RateEditDialog rate={editing} open={!!editing} onOpenChange={(o) => !o && setEditing(null)} />
+            <RateEditDialog
+              rate={editing}
+              open={!!editing}
+              onOpenChange={(o) => !o && setEditing(null)}
+            />
           )}
         </>
       )}

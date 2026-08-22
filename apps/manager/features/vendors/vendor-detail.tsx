@@ -7,6 +7,10 @@ import { toast } from "sonner";
 import { Check, Package, ShoppingCart, Wallet, X } from "lucide-react";
 
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
   Badge,
   Button,
   Card,
@@ -24,9 +28,13 @@ import {
   LoadingState,
   PageHeader,
   StatCard,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   Textarea,
 } from "@cj/ui";
-import type { OrderDto, OrderStatus, VendorDto } from "@cj/types";
+import type { OrderDto, OrderStatus, RateDto, Region, VendorDto } from "@cj/types";
 import { formatDateTime, formatINR } from "@cj/utils";
 
 import { usePermission } from "@/lib/permissions";
@@ -36,6 +44,7 @@ import {
   useRejectVendor,
   useVendor,
   useVendorOrders,
+  useVendorRateComparison,
 } from "./queries";
 
 const orderColumns: ColumnDef<OrderDto>[] = [
@@ -80,6 +89,139 @@ const orderColumns: ColumnDef<OrderDto>[] = [
     cell: ({ row }) => formatDateTime(row.original.createdAt),
   },
 ];
+
+function unitLabel(u: string) {
+  return u ? u.replace(/_/g, " ").toLowerCase() : "";
+}
+
+function fmtNum(val: string | number | null | undefined) {
+  return val != null && val !== "" ? String(Number(val)) : "—";
+}
+
+function VendorRatesCard({ vendorId }: { vendorId: string }) {
+  const { data: rates, isLoading, isError, refetch } = useVendorRateComparison(vendorId);
+
+  if (isLoading) return <LoadingState rows={4} />;
+  if (isError) return <ErrorState title="Failed to load rates" description="Could not fetch vendor rates." onRetry={() => refetch()} />;
+
+  if (!rates || rates.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+          <p className="text-muted-foreground font-medium">No rates configured</p>
+          <p className="text-muted-foreground text-xs">This vendor has no active rate catalog entries.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <Accordion type="multiple" className="space-y-3">
+        {rates.map((rateItem: RateDto) => {
+          const calcSize =
+            rateItem.calcWidth || rateItem.calcHeight
+              ? `${fmtNum(rateItem.calcWidth)} × ${fmtNum(rateItem.calcHeight)}`
+              : null;
+          const measSize =
+            rateItem.measWidth || rateItem.measHeight
+              ? `${fmtNum(rateItem.measWidth)} × ${fmtNum(rateItem.measHeight)}`
+              : null;
+
+          return (
+            <AccordionItem
+              key={rateItem.id}
+              value={rateItem.id}
+              className="rounded-lg border bg-card px-4 py-2 shadow-xs transition-all hover:shadow-sm"
+            >
+              <AccordionTrigger className="flex items-center justify-between gap-4 py-3 hover:no-underline">
+                <div className="flex flex-1 flex-col text-left">
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-foreground text-base">
+                      {rateItem.label}
+                    </span>
+                    <Badge variant={rateItem.isActive ? "default" : "secondary"}>
+                      {rateItem.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
+                  <span className="text-muted-foreground text-xs mt-1">
+                    Calc: <strong className="text-foreground">{unitLabel(rateItem.calcUnit)}</strong>
+                    {calcSize ? ` (${calcSize})` : ""} · Meas:{" "}
+                    <strong className="text-foreground">{unitLabel(rateItem.measUnit)}</strong>
+                    {measSize ? ` (${measSize})` : ""}
+                  </span>
+                </div>
+              </AccordionTrigger>
+
+              <AccordionContent className="pt-2 pb-3 border-t mt-2">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground tracking-wider">
+                    Region-wise Rate Comparison (Vendor Rate vs Master Rate)
+                  </p>
+                  {rateItem.regions && rateItem.regions.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
+                      {rateItem.regions.map((r: { id: string; region: Region; rate: string }) => {
+                        const vendorRateObj = rateItem.vendorRates?.find((vr) => vr.region === r.region);
+                        const masterRateNum = Number(r.rate);
+                        const vendorRateNum = vendorRateObj ? Number(vendorRateObj.rate) : null;
+
+                        let colorClass = "text-foreground font-semibold";
+                        let bgClass = "bg-muted/40 border-muted";
+
+                        if (vendorRateNum !== null) {
+                          if (vendorRateNum > masterRateNum) {
+                            colorClass = "text-red-600 font-bold";
+                            bgClass = "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50";
+                          } else if (vendorRateNum < masterRateNum) {
+                            colorClass = "text-emerald-600 font-bold";
+                            bgClass = "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/50";
+                          }
+                        }
+
+                        return (
+                          <div
+                            key={r.id}
+                            className={`flex flex-col rounded-md border p-3 ${bgClass} transition-colors`}
+                          >
+                            <span className="text-xs font-semibold text-muted-foreground">
+                              {unitLabel(r.region)}
+                            </span>
+                            <div className="mt-1 flex items-baseline justify-between gap-2">
+                              <div>
+                                <span className="text-[10px] text-muted-foreground block">Master Rate</span>
+                                <span className="text-sm font-medium text-foreground">
+                                  ₹{masterRateNum.toLocaleString("en-IN")}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] text-muted-foreground block">Vendor Rate</span>
+                                {vendorRateNum !== null ? (
+                                  <span className={`text-base ${colorClass}`}>
+                                    ₹{vendorRateNum.toLocaleString("en-IN")}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">Not set</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">
+                      No region rates configured for this item.
+                    </p>
+                  )}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
+      </Accordion>
+    </div>
+  );
+}
 
 function PerformanceSummary({
   orders,
@@ -231,6 +373,7 @@ function VendorApprovalDialog({
 export function VendorDetail() {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const [tab, setTab] = React.useState("overview");
   const [page, setPage] = React.useState(1);
   const [decision, setDecision] = React.useState<"APPROVE" | "REJECT" | null>(
     null,
@@ -300,82 +443,98 @@ export function VendorDetail() {
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Contact</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Contact Person</span>
-              <span>{vendor.contactPersonName ?? "—"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Email</span>
-              <span>{vendor.email ?? "—"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Phone</span>
-              <span>{vendor.phone ?? "—"}</span>
-            </div>
-            {profile && (
-              <>
-                <div className="flex justify-between border-t pt-3">
-                  <span className="text-muted-foreground">Legal Name</span>
-                  <span>{profile.legalName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Business Type</span>
-                  <span>{profile.businessType}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">GST</span>
-                  <span>{profile.gstNumber ?? "—"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">City</span>
-                  <span>{profile.city}</span>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="rates">Rates</TabsTrigger>
+          <TabsTrigger value="orders">Orders</TabsTrigger>
+        </TabsList>
 
-        <div className="lg:col-span-2">
-          <PerformanceSummary
-            orders={orders?.data ?? []}
-            total={orders?.meta.total ?? 0}
-          />
-        </div>
-      </div>
+        <TabsContent value="overview" className="pt-4">
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Card className="lg:col-span-1">
+              <CardHeader>
+                <CardTitle>Contact</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Contact Person</span>
+                  <span>{vendor.contactPersonName ?? "—"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Email</span>
+                  <span>{vendor.email ?? "—"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Phone</span>
+                  <span>{vendor.phone ?? "—"}</span>
+                </div>
+                {profile && (
+                  <>
+                    <div className="flex justify-between border-t pt-3">
+                      <span className="text-muted-foreground">Legal Name</span>
+                      <span>{profile.legalName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Business Type</span>
+                      <span>{profile.businessType}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">GST</span>
+                      <span>{profile.gstNumber ?? "—"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">City</span>
+                      <span>{profile.city}</span>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Orders</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {ordersError ? (
-            <ErrorState
-              title="Failed to load orders"
-              description="Could not fetch vendor orders."
-              onRetry={() => refetchOrders()}
-            />
-          ) : ordersLoading ? (
-            <LoadingState rows={4} />
-          ) : (
-            <DataTable
-              columns={orderColumns}
-              data={orders?.data ?? []}
-              totalRows={orders?.meta.total ?? 0}
-              pageIndex={page}
-              pageSize={20}
-              onPageChange={setPage}
-              emptyTitle="No orders"
-              emptyDescription="No orders assigned to this vendor."
-            />
-          )}
-        </CardContent>
-      </Card>
+            <div className="lg:col-span-2">
+              <PerformanceSummary
+                orders={orders?.data ?? []}
+                total={orders?.meta.total ?? 0}
+              />
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="rates" className="pt-4">
+          <VendorRatesCard vendorId={id} />
+        </TabsContent>
+
+        <TabsContent value="orders" className="pt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Orders</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {ordersError ? (
+                <ErrorState
+                  title="Failed to load orders"
+                  description="Could not fetch vendor orders."
+                  onRetry={() => refetchOrders()}
+                />
+              ) : ordersLoading ? (
+                <LoadingState rows={4} />
+              ) : (
+                <DataTable
+                  columns={orderColumns}
+                  data={orders?.data ?? []}
+                  totalRows={orders?.meta.total ?? 0}
+                  pageIndex={page}
+                  pageSize={20}
+                  onPageChange={setPage}
+                  emptyTitle="No orders"
+                  emptyDescription="No orders assigned to this vendor."
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {decision && vendor && (
         <VendorApprovalDialog

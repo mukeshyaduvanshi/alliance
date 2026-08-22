@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { OrderDto, Paginated, VendorDto } from "@cj/types";
+import type { OrderDto, Paginated, RateDto, VendorDto } from "@cj/types";
 
 import { api } from "@/lib/api";
 
@@ -49,5 +49,13 @@ export function useRejectVendor() {
       qc.invalidateQueries({ queryKey: ["vendors"] });
       qc.invalidateQueries({ queryKey: ["workflow-instances"] });
     },
+  });
+}
+
+export function useVendorRateComparison(vendorId: string) {
+  return useQuery({
+    queryKey: ["rates", "vendor", vendorId],
+    queryFn: () => api.get<RateDto[]>(`/rates/vendor/${vendorId}`),
+    enabled: Boolean(vendorId),
   });
 }

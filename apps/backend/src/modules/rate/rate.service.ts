@@ -152,6 +152,12 @@ export class RateService {
     });
   }
 
+  async deleteVendorRate(tenantId: string, vendorId: string, rateId: string) {
+    return this.prisma.vendorRate.deleteMany({
+      where: { tenantId, vendorId, rateId },
+    });
+  }
+
   async listRatesForBrand(tenantId: string, brandId: string) {
     const rates = await this.prisma.rate.findMany({
       where: { tenantId, deletedAt: null },
@@ -249,15 +255,19 @@ export class RateService {
         vendorId: vr.vendorId,
         vendorName: vr.vendor.vendorName,
       }));
-      const { vendorRates: vendorRatesUnused, regions: _adminRegions, ...rest } = r;
-      void vendorRatesUnused;
-      void _adminRegions;
+      const adminRegions = r.regions.map((reg) => ({
+        id: reg.id,
+        region: reg.region,
+        rate: reg.rate.toFixed(2),
+      }));
+      const { vendorRates: _v, regions: _r, ...rest } = r;
       return {
         ...rest,
         calcWidth: r.calcWidth != null ? String(Number(r.calcWidth)) : null,
         calcHeight: r.calcHeight != null ? String(Number(r.calcHeight)) : null,
         measWidth: r.measWidth != null ? String(Number(r.measWidth)) : null,
         measHeight: r.measHeight != null ? String(Number(r.measHeight)) : null,
+        regions: adminRegions,
         vendorRates: own,
       };
     });

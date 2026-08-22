@@ -32,6 +32,7 @@ export interface RateDto {
   brandQuotes?: RateQuoteDto[];
   brandRates?: RateQuoteDto[];
   vendorQuotes?: RateQuoteDto[];
+  vendorRates?: RateQuoteDto[];
 }
 
 export interface CreateRateDto {

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -36,6 +37,15 @@ export class VendorOwnRateController {
       req.user.vendorId,
       rateId,
       { ...dto, region: region as any },
+    );
+  }
+
+  @Delete(':rateId')
+  deleteOwn(@Req() req: any, @Param('rateId') rateId: string) {
+    return this.rateService.deleteVendorRate(
+      req.user.tenantId,
+      req.user.vendorId,
+      rateId,
     );
   }
 }

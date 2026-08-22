@@ -4,8 +4,10 @@ import type {
   AdminVendorRateDto,
   AssignVendorRateInput,
   BusinessModelType,
+  OrderDto,
   Paginated,
   ProductDto,
+  RateDto,
   VendorBusinessModelConfigDto,
   VendorDto,
   VendorManagerDto,
@@ -154,5 +156,22 @@ export function useRemoveVendorManager() {
       qc.invalidateQueries({ queryKey: ["vendors", variables.vendorId, "managers"] });
       qc.invalidateQueries({ queryKey: ["vendors"] });
     },
+  });
+}
+
+export function useVendorRateComparison(vendorId: string) {
+  return useQuery({
+    queryKey: ["rates", "vendor", vendorId],
+    queryFn: () => api.get<RateDto[]>(`/rates/vendor/${vendorId}`),
+    enabled: Boolean(vendorId),
+  });
+}
+
+export function useVendorOrders(vendorId: string, page = 1) {
+  return useQuery({
+    queryKey: ["orders", "vendor", vendorId, page],
+    queryFn: () =>
+      api.get<Paginated<OrderDto>>(`/orders?vendorId=${vendorId}&page=${page}&pageSize=${20}`),
+    enabled: Boolean(vendorId),
   });
 }

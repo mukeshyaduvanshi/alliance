@@ -82,6 +82,16 @@ export function useSetVendorOwnRate() {
   });
 }
 
+export function useDeleteVendorOwnRate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (rateId: string) => api.delete(`/vendor/rates/${rateId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vendor", "rates"] });
+    },
+  });
+}
+
 export function useVendorProducts(page = 1) {
   return useQuery({
     queryKey: ["vendor", "products", "browse", page],
