@@ -241,6 +241,31 @@ export class BrandService {
     return brand;
   }
 
+  private async ensureWorkflowInstance(
+    tenantId: string,
+    brand: any,
+    userId: string,
+  ): Promise<string> {
+    let instanceId = brand.workflowInstanceId;
+    if (instanceId) {
+      const existing = await this.prisma.workflowInstance.findFirst({
+        where: { id: instanceId, tenantId },
+      });
+      if (existing) return instanceId;
+    }
+
+    const newInstance = await this.workflowInstanceService.start(
+      tenantId,
+      { module: 'brand_onboarding', entityType: 'Brand', entityId: brand.id },
+      userId,
+    );
+    await this.prisma.brand.update({
+      where: { id: brand.id },
+      data: { workflowInstanceId: newInstance.id },
+    });
+    return newInstance.id;
+  }
+
   async approve(
     tenantId: string,
     brandId: string,
@@ -250,19 +275,22 @@ export class BrandService {
     isAdmin = true,
   ) {
     const brand = await this.findOne(tenantId, brandId, userId, isAdmin);
-    if (!brand.workflowInstanceId)
-      throw new NotFoundException('No workflow instance linked to this brand');
+    const instanceId = await this.ensureWorkflowInstance(
+      tenantId,
+      brand,
+      userId,
+    );
 
     await this.workflowInstanceService.approve(
       tenantId,
-      brand.workflowInstanceId,
+      instanceId,
       userId,
       roleId,
       remarks,
     );
     const instance = await this.workflowInstanceService.findOne(
       tenantId,
-      brand.workflowInstanceId,
+      instanceId,
     );
 
     if (instance.status === 'APPROVED') {
@@ -297,12 +325,15 @@ export class BrandService {
     isAdmin = true,
   ) {
     const brand = await this.findOne(tenantId, brandId, userId, isAdmin);
-    if (!brand.workflowInstanceId)
-      throw new NotFoundException('No workflow instance linked to this brand');
+    const instanceId = await this.ensureWorkflowInstance(
+      tenantId,
+      brand,
+      userId,
+    );
 
     await this.workflowInstanceService.reject(
       tenantId,
-      brand.workflowInstanceId,
+      instanceId,
       userId,
       roleId,
       remarks,

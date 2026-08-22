@@ -212,7 +212,7 @@ function WorkflowRuleForm({
                 <FormItem>
                   <FormLabel>Module</FormLabel>
                   <FormControl>
-                    <Select value={field.value || undefined} onValueChange={field.onChange}>
+                    <Select value={field.value ?? ""} onValueChange={field.onChange}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select module" />
                       </SelectTrigger>
@@ -294,7 +294,7 @@ function WorkflowRuleForm({
                     </Button>
                   </div>
                   <Select
-                    value={step.approverRoleId || undefined}
+                    value={step.approverRoleId ?? ""}
                     onValueChange={(v) => updateStep(index, { approverRoleId: v })}
                   >
                     <SelectTrigger>
@@ -309,7 +309,7 @@ function WorkflowRuleForm({
                     </SelectContent>
                   </Select>
                   <Select
-                    value={step.escalationRoleId || undefined}
+                    value={step.escalationRoleId ?? ""}
                     onValueChange={(v) => updateStep(index, { escalationRoleId: v })}
                   >
                     <SelectTrigger>

@@ -73,6 +73,12 @@ export class WorkflowRuleController {
     );
   }
 
+  @RequirePermission('workflow', 'CREATE')
+  @Post()
+  create(@Req() req: any, @Body() dto: CreateWorkflowRuleDto) {
+    return this.workflowRuleService.create(req.user.tenantId, dto);
+  }
+
   @RequirePermission('workflow', 'VIEW')
   @Get(':id')
   findOne(@Req() req: any, @Param('id') id: string) {

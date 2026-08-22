@@ -67,20 +67,51 @@ export class WorkflowRuleService {
 
   async create(tenantId: string, dto: CreateWorkflowRuleDto) {
     const existing = await this.prisma.workflowRule.findFirst({
-      where: { tenantId, module: dto.module, deletedAt: null },
+      where: { tenantId, module: dto.module },
     });
-    if (existing) {
+    if (existing && existing.deletedAt === null) {
       throw new ConflictException(
         'A workflow rule already exists for this module',
       );
     }
+
     const { steps, ...ruleData } = dto;
+    const sanitizedSteps = (steps && steps.length > 0)
+      ? steps.map((s) => ({
+          stepOrder: s.stepOrder,
+          approverRoleId: s.approverRoleId,
+          escalationRoleId: s.escalationRoleId || null,
+          isOptional: s.isOptional ?? false,
+        }))
+      : [];
+
+    if (existing) {
+      // Recycle the soft-deleted rule so @@unique([tenantId, module]) passes
+      // and foreign keys on existing WorkflowInstances remain intact!
+      return this.prisma.$transaction(async (tx) => {
+        await tx.workflowStep.deleteMany({
+          where: { workflowRuleId: existing.id },
+        });
+        return tx.workflowRule.update({
+          where: { id: existing.id },
+          data: {
+            ...ruleData,
+            deletedAt: null,
+            ...(sanitizedSteps.length > 0
+              ? { steps: { create: sanitizedSteps } }
+              : {}),
+          },
+          include: { steps: { orderBy: { stepOrder: 'asc' } } },
+        });
+      });
+    }
+
     return this.prisma.workflowRule.create({
       data: {
         tenantId,
         ...ruleData,
-        ...(steps && steps.length > 0
-          ? { steps: { create: steps } }
+        ...(sanitizedSteps.length > 0
+          ? { steps: { create: sanitizedSteps } }
           : {}),
       },
       include: { steps: { orderBy: { stepOrder: 'asc' } } },
@@ -155,14 +186,14 @@ export class WorkflowRuleService {
           },
           update: {
             approverRoleId: s.approverRoleId,
-            escalationRoleId: s.escalationRoleId ?? null,
+            escalationRoleId: s.escalationRoleId || null,
             isOptional: s.isOptional ?? false,
           },
           create: {
             workflowRuleId: id,
             stepOrder: s.stepOrder,
             approverRoleId: s.approverRoleId,
-            escalationRoleId: s.escalationRoleId ?? null,
+            escalationRoleId: s.escalationRoleId || null,
             isOptional: s.isOptional ?? false,
           },
         });
@@ -199,7 +230,13 @@ export class WorkflowRuleService {
       throw new ConflictException('A step with this order already exists');
     }
     return this.prisma.workflowStep.create({
-      data: { workflowRuleId: ruleId, ...dto },
+      data: {
+        workflowRuleId: ruleId,
+        stepOrder: dto.stepOrder,
+        approverRoleId: dto.approverRoleId,
+        escalationRoleId: dto.escalationRoleId || null,
+        isOptional: dto.isOptional ?? false,
+      },
     });
   }
 
@@ -210,9 +247,15 @@ export class WorkflowRuleService {
     dto: Partial<CreateWorkflowStepDto>,
   ) {
     await this.findOne(tenantId, ruleId);
+    const { escalationRoleId, ...rest } = dto;
     return this.prisma.workflowStep.update({
       where: { id: stepId },
-      data: dto,
+      data: {
+        ...rest,
+        ...(escalationRoleId !== undefined
+          ? { escalationRoleId: escalationRoleId || null }
+          : {}),
+      },
     });
   }
 

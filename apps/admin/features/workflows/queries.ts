@@ -17,15 +17,16 @@ export function useWorkflows(page = 1) {
   return useQuery({
     queryKey: ["workflows", page],
     queryFn: () =>
-      api.get<Paginated<WorkflowRuleDto>>(`/workflows?page=${page}&pageSize=${20}`),
+      api.get<Paginated<WorkflowRuleDto>>(
+        `/workflows?page=${page}&pageSize=${20}`,
+      ),
   });
 }
 
 export function useWorkflowModules() {
   return useQuery({
     queryKey: ["workflow-modules"],
-    queryFn: () =>
-      api.get<WorkflowModuleDto[]>("/workflows/modules/detail"),
+    queryFn: () => api.get<WorkflowModuleDto[]>("/workflows/modules/detail"),
   });
 }
 
@@ -119,7 +120,7 @@ export function useWorkflowInstances(page = 1) {
     queryKey: ["workflow-instances", page],
     queryFn: () =>
       api.get<Paginated<WorkflowInstanceDto>>(
-        `/workflow-instances?page=${page}&pageSize=${20}`
+        `/workflow-instances?page=${page}&pageSize=${20}`,
       ),
   });
 }
@@ -127,7 +128,8 @@ export function useWorkflowInstances(page = 1) {
 export function usePendingWorkflows() {
   return useQuery({
     queryKey: ["workflow-instances", "pending"],
-    queryFn: () => api.get<WorkflowInstanceDto[]>("/workflow-instances/pending"),
+    queryFn: () =>
+      api.get<WorkflowInstanceDto[]>("/workflow-instances/pending"),
   });
 }
 
@@ -135,7 +137,9 @@ export function useApproveInstance() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, remarks }: { id: string; remarks?: string }) =>
-      api.post(`/workflow-instances/${id}/approve`, { remarks } as ApprovalActionInput),
+      api.post(`/workflow-instances/${id}/approve`, {
+        remarks,
+      } as ApprovalActionInput),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workflow-instances"] });
     },
@@ -146,7 +150,9 @@ export function useRejectInstance() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, remarks }: { id: string; remarks?: string }) =>
-      api.post(`/workflow-instances/${id}/reject`, { remarks } as ApprovalActionInput),
+      api.post(`/workflow-instances/${id}/reject`, {
+        remarks,
+      } as ApprovalActionInput),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workflow-instances"] });
     },
